@@ -1,0 +1,1489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Skin Diary</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--PWA-HEAD-->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Skin Diary">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#EEF2EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131915" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-v2-180.png">
+<link rel="icon" type="image/png" href="icon-v2-192.png">
+
+<style>
+@font-face { font-family: 'Fraunces'; src: url(fraunces.woff2) format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+</style>
+<!--/PWA-HEAD-->
+<style>
+/* Layout: an iOS app shell. Frosted nav + tab bars over one scroller; a month of daily photos is the hero; days open as card sheets. */
+:root {
+  --paper: #EEF2EA;      /* cool sage-tinted ground */
+  --surface: #FAFBF8;    /* grouped rows, fields */
+  --mist: #DDE6D7;       /* soft sage fill for the one highlighted block */
+  --sage: #7E9B7E;       /* calm accent */
+  --deep: #3D5C48;       /* tint: buttons, links, today ring */
+  --on-deep: #F4F7F1;
+  --ink: #1E2A23;
+  --muted: #66766C;
+  --hair: rgba(30, 42, 35, .13);
+  --honey: #B27E33;      /* the product being reintroduced */
+  --honey-soft: #F2E5CB;
+  --danger: #C2412F;
+  --bar: rgba(238, 242, 234, .8);
+  --glass: rgba(250, 251, 248, .94);
+  --behind: #000;
+  --scrim: rgba(0, 0, 0, .32);
+  --p1: #7E9B7E; --p2: #5A8A8C; --p3: #A493B6; --p4: #C2A877; --p5: #C48E8A; --p6: #6F7F5A;
+  --display: 'Fraunces', 'New York', 'Iowan Old Style', Georgia, serif;
+  --body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  --tabbar: 50px;
+  --ease: cubic-bezier(.32, .72, 0, 1);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #131915; --surface: #1D2620; --mist: #243129; --sage: #8FAE8C; --deep: #A8C6A2; --on-deep: #14201A;
+    --ink: #E6ECE3; --muted: #9AA99F; --hair: rgba(230, 236, 227, .13); --honey: #D9A85E; --honey-soft: #3A3020; --danger: #FF6B5A;
+    --bar: rgba(19, 25, 21, .8); --glass: rgba(36, 46, 40, .94); --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #131915; --surface: #1D2620; --mist: #243129; --sage: #8FAE8C; --deep: #A8C6A2; --on-deep: #14201A;
+  --ink: #E6ECE3; --muted: #9AA99F; --hair: rgba(230, 236, 227, .13); --honey: #D9A85E; --honey-soft: #3A3020; --danger: #FF6B5A;
+  --bar: rgba(19, 25, 21, .8); --glass: rgba(36, 46, 40, .94); --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--behind); color: var(--ink);
+  font-family: var(--body); font-size: 17px; line-height: 1.4; letter-spacing: -.01em;
+  -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
+  position: fixed; inset: 0; overflow: hidden; touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+}
+input, textarea { -webkit-user-select: text; user-select: text; font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; letter-spacing: inherit; }
+label { cursor: pointer; }
+img { max-width: 100%; display: block; -webkit-touch-callout: none; }
+:focus-visible { outline: 2px solid var(--deep); outline-offset: 2px; border-radius: 10px; }
+h1, h2, h3, p { margin: 0; }
+svg { flex-shrink: 0; }
+.press { transition: transform .12s, opacity .12s; }
+.press:active { transform: scale(.97); opacity: .85; }
+
+/* ---------- shell ---------- */
+.stage {
+  position: fixed; inset: 0; background: var(--paper); overflow: hidden;
+  transform-origin: 50% 0; transition: transform .45s var(--ease), border-radius .45s var(--ease);
+}
+body.has-sheet .stage { transform: translateY(calc(var(--safe-top) + 6px)) scale(.93); border-radius: 14px; }
+.scroller {
+  position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(var(--tabbar) + var(--safe-bottom) + 28px);
+}
+.navbar { position: sticky; top: 0; z-index: 10; padding-top: var(--safe-top); transition: background-color .2s; border-bottom: .5px solid transparent; }
+.navbar.compact { background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-bottom-color: var(--hair); }
+.navbar-inner { max-width: 600px; margin: 0 auto; height: 44px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 calc(var(--gutter-r) - 6px) 0 var(--gutter-l); }
+.nav-title { font-size: 17px; font-weight: 600; opacity: 0; transform: translateY(4px); transition: opacity .2s, transform .2s; white-space: nowrap; }
+.navbar.compact .nav-title { opacity: 1; transform: none; }
+.nav-right { justify-self: end; display: flex; align-items: center; }
+.wordmark { font-family: var(--display); font-variation-settings: "SOFT" 100; font-size: 17px; color: var(--muted); transition: opacity .2s; }
+.navbar.compact .wordmark { opacity: 0; }
+.app { max-width: 600px; margin: 0 auto; padding: 0 var(--gutter-r) 0 var(--gutter-l); }
+.icon-btn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--deep); }
+.icon-btn:active { opacity: .45; }
+.icon-btn svg { width: 24px; height: 24px; }
+
+.large-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 2px 0 18px; }
+.large-title h1 { font-family: var(--display); font-variation-settings: "SOFT" 100; font-weight: 450; font-size: 40px; line-height: 1.02; letter-spacing: -.02em; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 50px; padding: 0 20px; border-radius: 14px; font-weight: 600; font-size: 17px; white-space: nowrap; transition: transform .12s, opacity .12s; }
+.btn:active { transform: scale(.97); opacity: .8; }
+.btn svg { width: 21px; height: 21px; }
+.btn-primary { background: var(--deep); color: var(--on-deep); }
+.btn-tinted { background: var(--surface); color: var(--deep); }
+.btn-small { min-height: 34px; padding: 0 14px; border-radius: 999px; font-size: 15px; }
+.btn-block { width: 100%; }
+.link { color: var(--deep); font-weight: 400; min-height: 44px; display: inline-flex; align-items: center; padding: 0 6px; }
+.link.bold { font-weight: 600; }
+.link:active { opacity: .45; }
+
+/* grouped list (iOS settings style) */
+.group { background: var(--surface); border-radius: 14px; overflow: hidden; }
+.row { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 11px 16px; text-align: left; }
+.row + .row::before { content: ""; position: absolute; top: 0; right: 0; left: var(--inset, 16px); height: .5px; background: var(--hair); }
+button.row:active, label.row:active { background: var(--mist); }
+.row .txt { flex: 1; min-width: 0; }
+.row .name { display: block; overflow-wrap: anywhere; }
+.row .meta { display: block; color: var(--muted); font-size: 15px; }
+.row .meta.plan { color: var(--honey); }
+.row .chev { width: 14px; height: 14px; color: var(--muted); opacity: .6; }
+.group-label { font-size: 13px; color: var(--muted); padding: 0 16px 7px; }
+.group-foot { font-size: 13px; color: var(--muted); padding: 7px 16px 0; line-height: 1.4; }
+.row.center { justify-content: center; }
+.row.destructive { color: var(--danger); justify-content: center; }
+
+/* ---------- calendar ---------- */
+.month-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; margin: 0 0 16px; }
+.month-title { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.month-title h1 { font-family: var(--display); font-variation-settings: "SOFT" 100, "WONK" 0; font-weight: 400; font-size: clamp(40px, 12vw, 54px); line-height: .95; letter-spacing: -.025em; white-space: nowrap; }
+.month-title .year { font-family: var(--display); font-variation-settings: "SOFT" 100; font-size: 18px; color: var(--muted); font-variant-numeric: lining-nums; padding-left: 2px; }
+.month-nav { display: flex; align-items: center; flex-shrink: 0; margin-right: -8px; }
+.nav-left { display: flex; align-items: center; min-width: 0; }
+.today-pill { display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 13px 0 7px; border-radius: 999px; background: var(--surface); color: var(--deep); font-size: 15px; font-weight: 600; box-shadow: 0 0 0 .5px var(--hair); transition: opacity .12s, transform .12s; }
+.today-pill svg { width: 17px; height: 17px; }
+.today-pill:active { opacity: .6; transform: scale(.96); }
+
+.weekdays, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.weekdays { margin-bottom: 6px; }
+.weekdays span { text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); }
+.grid { touch-action: pan-y; transition: opacity .18s, transform .18s; }
+.grid.slide-l { opacity: 0; transform: translateX(-18px); }
+.grid.slide-r { opacity: 0; transform: translateX(18px); }
+.cell {
+  position: relative; aspect-ratio: 1 / 1.22; border-radius: 13px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 6px 2px 7px; background: var(--surface); border: 1px solid transparent;
+  font-variant-numeric: tabular-nums; transition: transform .12s;
+}
+.cell.blank { background: transparent; pointer-events: none; }
+.cell .num { position: relative; z-index: 1; font-size: 15px; font-weight: 500; line-height: 1.2; }
+.cell.future { background: transparent; border: 1px dashed var(--hair); }
+.cell.future .num { color: var(--muted); }
+.cell.today { border: 2px solid var(--deep); }
+.cell.today .num { font-weight: 700; color: var(--deep); }
+.cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cell.has-photo .num { background: var(--glass); color: var(--ink); border-radius: 999px; padding: 0 6px; font-size: 12.5px; font-weight: 600; }
+.cell.has-photo.today .num { background: var(--deep); color: var(--on-deep); }
+.cell:active { transform: scale(.93); }
+.dots { position: relative; z-index: 1; display: flex; gap: 3px; align-items: center; justify-content: center; min-height: 8px; }
+.cell.has-photo .dots:not(:empty) { background: var(--glass); border-radius: 999px; padding: 2px 4px; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--c, var(--sage)); display: block; }
+.dots i.used { background: var(--honey); width: 7px; height: 7px; }
+.dots i.due { background: transparent; border: 1.5px solid var(--honey); width: 8px; height: 8px; }
+.dots i.note { width: 7px; height: 2px; border-radius: 2px; background: var(--muted); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 14px 2px 22px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+.legend .used { background: var(--honey); }
+.legend .due { border: 1.5px solid var(--honey); width: 9px; height: 9px; }
+.legend .prod { background: var(--sage); }
+.legend .note { width: 8px; height: 2px; border-radius: 2px; background: var(--muted); }
+
+/* today panel: the one highlighted object on the page */
+.today-panel { background: var(--mist); border-radius: 24px; padding: 20px; display: grid; gap: 16px; }
+.today-panel h2 { font-family: var(--display); font-variation-settings: "SOFT" 100; font-weight: 450; font-size: 27px; line-height: 1.12; }
+.today-panel .sub { color: var(--muted); font-size: 15px; margin-top: 2px; }
+.today-row { display: flex; align-items: center; gap: 14px; }
+.today-thumb { width: 66px; height: 84px; border-radius: 14px; object-fit: cover; flex-shrink: 0; }
+.today-thumb.empty { display: grid; place-items: center; background: var(--surface); border: 1.5px dashed var(--sage); color: var(--deep); }
+.today-thumb.empty svg { width: 26px; height: 26px; }
+.today-row .txt { min-width: 0; flex: 1; }
+.today-row .txt strong { display: block; font-weight: 600; }
+.today-row .txt span { display: block; color: var(--muted); font-size: 15px; }
+.plan-line { display: flex; gap: 12px; align-items: center; background: var(--surface); border-radius: 16px; padding: 12px 12px 12px 14px; }
+.plan-line .mark { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--honey); }
+.plan-line .mark.rest { background: transparent; border: 2px solid var(--honey); }
+.plan-line .txt { flex: 1; min-width: 0; font-size: 15px; line-height: 1.3; }
+.plan-line .txt strong { font-weight: 600; display: block; }
+.plan-line .txt span { color: var(--muted); display: block; font-size: 13.5px; margin-top: 2px; }
+.today-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.today-foot { font-size: 14px; color: var(--muted); }
+.today-foot button { color: var(--deep); font-weight: 600; }
+
+.install { background: var(--surface); border-radius: 18px; padding: 14px 16px; margin-bottom: 18px; display: flex; gap: 12px; align-items: flex-start; }
+.install img { width: 46px; height: 46px; border-radius: 11px; }
+.install .txt { flex: 1; font-size: 15px; line-height: 1.35; }
+.install .txt strong { display: block; }
+.install .txt span { color: var(--muted); }
+.install .share { display: inline-block; width: 16px; height: 16px; vertical-align: -2px; color: var(--deep); }
+.install .x { color: var(--muted); width: 30px; height: 30px; display: grid; place-items: center; margin: -4px -6px 0 0; }
+.install .x svg { width: 16px; height: 16px; }
+
+/* ---------- photos ---------- */
+.photo-month { margin-bottom: 24px; }
+.photo-month h2 { font-family: var(--display); font-variation-settings: "SOFT" 100; font-weight: 450; font-size: 21px; margin: 0 0 9px 2px; }
+.photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; border-radius: 14px; overflow: hidden; }
+.ph { position: relative; aspect-ratio: 3 / 4; overflow: hidden; background: var(--surface); }
+.ph img { width: 100%; height: 100%; object-fit: cover; transition: transform .12s; }
+.ph:active img { transform: scale(.96); }
+.ph .lab { position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 8px 6px; background: linear-gradient(transparent, rgba(0,0,0,.45)); color: #fff; font-size: 12.5px; font-weight: 600; text-align: left; }
+.ph .pick { position: absolute; top: 7px; right: 7px; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #fff; background: rgba(0,0,0,.18); display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700; }
+.ph.picked img { opacity: .78; }
+.ph.picked .pick { background: var(--deep); border-color: #fff; color: var(--on-deep); }
+.compare-hint { color: var(--muted); font-size: 15px; margin: -8px 0 14px 2px; }
+
+/* ---------- products ---------- */
+.add-form { display: flex; gap: 8px; margin-bottom: 22px; }
+.field { width: 100%; min-height: 46px; border-radius: 12px; border: 0; background: var(--surface); padding: 0 14px; font-size: 17px; }
+.field::placeholder { color: var(--muted); opacity: .8; }
+.field:focus { outline: 2px solid var(--deep); outline-offset: 0; }
+.add-form .btn { min-height: 46px; border-radius: 12px; padding: 0 18px; }
+.swatch { width: 14px; height: 14px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+.suggest { margin-top: 22px; }
+.suggest p { color: var(--muted); font-size: 15px; margin: 0 0 10px 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 38px; padding: 0 14px; border-radius: 999px; background: var(--surface); color: var(--deep); font-size: 15px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.chip svg { width: 15px; height: 15px; }
+.chip:active { background: var(--mist); }
+.hint { color: var(--muted); font-size: 14px; margin: 8px 16px 0; line-height: 1.4; }
+
+/* ---------- empty states ---------- */
+.empty { text-align: center; padding: 36px 12px; display: grid; gap: 12px; justify-items: center; }
+.empty .art { width: 84px; height: 84px; border-radius: 26px; background: var(--mist); color: var(--deep); display: grid; place-items: center; }
+.empty .art svg { width: 38px; height: 38px; }
+.empty h2 { font-family: var(--display); font-variation-settings: "SOFT" 100; font-weight: 450; font-size: 24px; }
+.empty p { color: var(--muted); max-width: 30ch; font-size: 16px; }
+
+/* ---------- tab bar ---------- */
+.tabbar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  border-top: .5px solid var(--hair);
+  padding: 0 var(--gutter-r) var(--safe-bottom) var(--gutter-l);
+}
+.tabbar nav { max-width: 600px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); height: var(--tabbar); }
+.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-size: 10.5px; font-weight: 600; letter-spacing: .01em; padding-top: 2px; }
+.tab svg { width: 26px; height: 26px; }
+.tab svg .fill { fill: transparent; }
+.tab[aria-selected="true"] { color: var(--deep); }
+.tab[aria-selected="true"] svg .fill { fill: currentColor; fill-opacity: .18; }
+
+/* ---------- card sheets ---------- */
+.backdrop { position: fixed; inset: 0; z-index: 39; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity .4s var(--ease); }
+body.has-sheet .backdrop { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; top: calc(var(--safe-top) + 12px); margin: 0 auto; max-width: 640px;
+  z-index: 40; background: var(--paper); border-radius: 14px 14px 0 0;
+  display: flex; flex-direction: column; transform: translateY(105%);
+  transition: transform .45s var(--ease); box-shadow: 0 -1px 24px rgba(0, 0, 0, .14);
+}
+.sheet.open { transform: none; }
+.sheet.stacked { z-index: 45; }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--hair); margin: 6px auto 0; flex-shrink: 0; }
+.sheet-bar { flex-shrink: 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 46px; padding: 0 calc(var(--gutter-r) - 6px) 0 calc(var(--gutter-l) - 8px); }
+.sheet-bar .left { display: flex; align-items: center; }
+.sheet-bar .right { justify-self: end; }
+.sheet-bar .title { font-size: 17px; font-weight: 600; max-width: 52vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-bar .link { font-size: 17px; }
+.sheet-body {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  padding: 6px var(--gutter-r) calc(var(--safe-bottom) + 40px) var(--gutter-l);
+}
+.sheet-inner { max-width: 600px; margin: 0 auto; display: grid; gap: 26px; }
+.day-head { touch-action: pan-y; }
+.day-title { font-family: var(--display); font-variation-settings: "SOFT" 100; font-weight: 450; font-size: 34px; line-height: 1.06; letter-spacing: -.015em; text-wrap: balance; }
+.day-sub { color: var(--muted); margin-top: 4px; font-size: 15px; }
+.block-head { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; min-height: 30px; }
+.block-head h3 { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+.block-head .link { font-size: 16px; min-height: 30px; padding-right: 2px; }
+.block-head small { color: var(--muted); font-size: 14px; }
+
+.photo-strip { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 2px; margin-right: calc(-1 * var(--gutter-r)); padding-right: var(--gutter-r); scrollbar-width: none; }
+.photo-strip::-webkit-scrollbar { display: none; }
+.photo-strip > * { scroll-snap-align: start; flex-shrink: 0; }
+.strip-photo { width: 62%; max-width: 270px; aspect-ratio: 3 / 4; border-radius: 18px; overflow: hidden; background: var(--surface); }
+.strip-photo img { width: 100%; height: 100%; object-fit: cover; }
+.strip-add { width: 30%; max-width: 130px; aspect-ratio: 3 / 4; border-radius: 18px; background: var(--surface); color: var(--deep); display: grid; place-content: center; justify-items: center; gap: 6px; font-size: 14px; font-weight: 600; text-align: center; }
+.strip-add svg { width: 28px; height: 28px; }
+.strip-add:active { background: var(--mist); }
+.photo-empty { background: var(--surface); border-radius: 22px; padding: 26px 18px 18px; display: grid; gap: 14px; justify-items: center; text-align: center; }
+.photo-empty .art { width: 64px; height: 64px; border-radius: 20px; background: var(--mist); color: var(--deep); display: grid; place-items: center; }
+.photo-empty .art svg { width: 30px; height: 30px; }
+.photo-empty p { color: var(--muted); font-size: 15px; max-width: 30ch; }
+.photo-empty .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.photo-empty .two .btn-tinted { background: var(--mist); }
+
+.use { position: relative; }
+.use + .use::before { content: ""; position: absolute; top: 0; right: 0; left: 56px; height: .5px; background: var(--hair); }
+.use-toggle { width: 100%; display: flex; align-items: center; gap: 14px; padding: 12px 16px; min-height: 56px; text-align: left; }
+.use-toggle:active { background: var(--mist); }
+.check { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--hair); flex-shrink: 0; display: grid; place-items: center; color: transparent; transition: background .15s, border-color .15s, transform .15s; }
+.check svg { width: 15px; height: 15px; }
+.use.on .check { background: var(--c, var(--sage)); border-color: var(--c, var(--sage)); color: #fff; transform: scale(1.04); }
+.use.tracked.on .check { background: var(--honey); border-color: var(--honey); }
+.use-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.badge { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.badge.due { background: var(--honey-soft); color: var(--honey); }
+.badge.rest { background: var(--mist); color: var(--muted); }
+.badge.free { background: var(--mist); color: var(--deep); }
+.contact { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 16px 14px 56px; }
+.contact > span { font-size: 14px; color: var(--muted); flex-basis: 100%; }
+.stepper { display: inline-flex; align-items: center; background: var(--paper); border-radius: 10px; }
+.stepper button { width: 46px; height: 38px; display: grid; place-items: center; font-size: 22px; font-weight: 400; color: var(--deep); border-radius: 10px; }
+.stepper button:active { background: var(--mist); }
+.stepper output { min-width: 84px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; font-size: 16px; border-left: .5px solid var(--hair); border-right: .5px solid var(--hair); }
+.contact .btn { min-height: 38px; padding: 0 14px; font-size: 15px; border-radius: 10px; background: var(--honey-soft); color: var(--honey); }
+.contact .btn svg { width: 18px; height: 18px; }
+.goal-note { font-size: 13px; color: var(--muted); }
+
+.notes { width: 100%; min-height: 140px; resize: none; border-radius: 14px; border: 0; background: var(--surface); padding: 14px 16px; font-size: 17px; line-height: 1.45; display: block; }
+.notes::placeholder { color: var(--muted); opacity: .8; }
+.notes:focus { outline: 2px solid var(--deep); outline-offset: 0; }
+.saved { font-size: 14px; color: var(--muted); transition: opacity .3s; }
+
+/* product sheet */
+.swatches { display: flex; gap: 14px; flex-wrap: wrap; padding: 14px 16px; }
+.swatches button { width: 34px; height: 34px; border-radius: 50%; background: var(--c); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--hair); }
+.swatches button[aria-checked="true"] { box-shadow: 0 0 0 2px var(--ink); }
+.switch { width: 51px; height: 31px; border-radius: 999px; background: var(--hair); position: relative; flex-shrink: 0; transition: background .25s; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15), 0 1px 1px rgba(0,0,0,.12); transition: transform .25s var(--ease); }
+.switch[aria-checked="true"] { background: var(--honey); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+.plan-cell { padding: 14px 16px; display: grid; gap: 10px; }
+.plan-cell + .plan-cell { border-top: .5px solid var(--hair); }
+.plan-cell .lbl { font-size: 15px; color: var(--muted); }
+.plan-cell.inline { grid-template-columns: 1fr auto; align-items: center; }
+.plan-cell.inline .lbl { color: var(--ink); font-size: 17px; }
+.plan-cell .stepper { background: var(--mist); }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--mist); border-radius: 9px; padding: 2px; gap: 2px; }
+.seg button { min-height: 34px; border-radius: 7px; font-size: 15px; font-weight: 500; color: var(--ink); transition: background .2s; }
+.seg button[aria-checked="true"] { background: var(--surface); font-weight: 600; color: var(--honey); box-shadow: 0 3px 8px rgba(0,0,0,.1), 0 1px 1px rgba(0,0,0,.06); }
+.status-lines { display: grid; gap: 3px; font-size: 15px; }
+.status-lines strong { font-weight: 600; font-size: 16px; }
+.status-lines span { color: var(--muted); }
+.chart-box { padding: 14px 10px 8px 6px; }
+.chart text { fill: var(--muted); font-family: var(--body); font-size: 11px; }
+.history .row { font-size: 15px; justify-content: space-between; }
+.history .row span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.muted-row { color: var(--muted); font-size: 15px; }
+
+/* settings */
+.stat-row { justify-content: space-between; }
+.stat-row span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+.row.action { color: var(--deep); }
+.set-intro { font-size: 15px; color: var(--muted); line-height: 1.45; padding: 0 4px; }
+
+/* photo viewer */
+.viewer { position: fixed; inset: 0; z-index: 60; background: #000; color: #fff; display: flex; flex-direction: column; }
+.viewer .vbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: calc(var(--safe-top) + 4px) calc(var(--gutter-r) - 6px) 4px calc(var(--gutter-l) - 6px); min-height: 50px; }
+.viewer .vbar .link, .viewer .vfoot .link { color: #fff; }
+.viewer .vbar .right { justify-self: end; }
+.viewer-title { font-size: 16px; font-weight: 600; text-align: center; }
+.viewer-title small { display: block; font-weight: 400; font-size: 12.5px; opacity: .7; }
+.viewer-img { flex: 1; min-height: 0; display: grid; place-items: center; touch-action: none; }
+.viewer-img img { max-height: 100%; max-width: 100%; object-fit: contain; transition: transform .25s var(--ease); }
+.vfoot { display: flex; justify-content: space-between; align-items: center; padding: 8px calc(var(--gutter-r) - 6px) calc(var(--safe-bottom) + 10px) calc(var(--gutter-l) - 6px); max-width: 640px; width: 100%; margin: 0 auto; }
+.vfoot .icon-btn { color: #fff; }
+
+/* compare */
+.cmp { position: relative; width: 100%; max-width: 460px; margin: 0 auto; aspect-ratio: 3 / 4; border-radius: 20px; overflow: hidden; background: #000; touch-action: none; }
+.cmp img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cmp .top { clip-path: inset(0 calc(100% - var(--x, 50%)) 0 0); }
+.cmp .divider { position: absolute; top: 0; bottom: 0; left: var(--x, 50%); width: 2px; margin-left: -1px; background: #fff; pointer-events: none; }
+.cmp .knob { position: absolute; top: 50%; left: var(--x, 50%); width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.35); display: grid; place-items: center; color: #333; pointer-events: none; }
+.cmp .knob svg { width: 20px; height: 20px; }
+.cmp .tag { position: absolute; top: 12px; font-size: 13px; font-weight: 600; background: rgba(0,0,0,.45); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: #fff; padding: 4px 10px; border-radius: 999px; }
+.cmp .tag.l { left: 12px; } .cmp .tag.r { right: 12px; }
+.cmp-note { text-align: center; color: var(--muted); font-size: 14px; margin-top: 12px; }
+
+/* timer */
+.timer { position: fixed; inset: 0; z-index: 70; background: var(--paper); display: flex; flex-direction: column; transform: translateY(100%); transition: transform .45s var(--ease); }
+.timer.open { transform: none; }
+.timer .tbar { padding: calc(var(--safe-top) + 4px) var(--gutter-r) 0 calc(var(--gutter-l) - 6px); min-height: 50px; display: flex; align-items: center; }
+.timer-body { flex: 1; display: grid; place-items: center; align-content: center; gap: 24px; padding: 0 var(--gutter-r) calc(var(--safe-bottom) + 28px) var(--gutter-l); text-align: center; }
+.ring { position: relative; width: min(76vw, 310px); aspect-ratio: 1; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .track { stroke: var(--mist); }
+.ring .prog { stroke: var(--honey); transition: stroke-dashoffset .2s linear; }
+.ring .center { position: absolute; inset: 0; display: grid; place-content: center; gap: 6px; }
+.ring .big { font-family: var(--display); font-variation-settings: "SOFT" 100; font-size: 72px; font-weight: 350; line-height: 1; font-variant-numeric: tabular-nums lining-nums; }
+.ring .small { color: var(--muted); font-size: 15px; }
+.timer-name { font-family: var(--display); font-variation-settings: "SOFT" 100; font-size: 26px; }
+.timer-msg { min-height: 24px; color: var(--muted); font-size: 16px; }
+.timer-msg.done { color: var(--honey); font-weight: 600; }
+.timer-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 360px; }
+.round { width: 86px; height: 86px; border-radius: 50%; justify-self: center; font-size: 17px; font-weight: 500; display: grid; place-items: center; transition: transform .12s, opacity .12s; }
+.round:active { transform: scale(.94); }
+.round.quiet { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--surface); }
+.round.go { background: var(--deep); color: var(--on-deep); box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--deep); }
+.round.go.pause { background: var(--honey-soft); color: var(--honey); box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--honey-soft); }
+#timerLog { max-width: 360px; }
+
+/* action sheet + toast */
+.as-wrap { position: fixed; inset: 0; z-index: 90; background: var(--scrim); opacity: 0; transition: opacity .3s; display: flex; align-items: flex-end; justify-content: center; }
+.as-wrap.show { opacity: 1; }
+.as { width: 100%; max-width: 440px; padding: 0 8px calc(var(--safe-bottom) + 8px); display: grid; gap: 8px; transform: translateY(110%); transition: transform .4s var(--ease); }
+.as-wrap.show .as { transform: none; }
+.as-group { background: var(--glass); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-radius: 14px; overflow: hidden; }
+.as-head { padding: 14px 18px; text-align: center; display: grid; gap: 3px; border-bottom: .5px solid var(--hair); }
+.as-head strong { font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.as-head span { font-size: 13px; color: var(--muted); }
+.as-btn { width: 100%; min-height: 57px; font-size: 20px; color: var(--deep); background: var(--glass); }
+.as-group .as-btn { background: transparent; }
+.as-btn.danger { color: var(--danger); }
+.as-btn.cancel { border-radius: 14px; font-weight: 600; -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+.as-btn:active { background: var(--mist); }
+.toast {
+  position: fixed; left: 50%; top: calc(var(--safe-top) + 10px); z-index: 95;
+  transform: translate(-50%, -16px) scale(.96); opacity: 0; pointer-events: none;
+  background: var(--glass); color: var(--ink); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  padding: 11px 18px; border-radius: 999px; font-size: 15px; font-weight: 600;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .16); transition: opacity .25s, transform .35s var(--ease);
+  width: max-content; max-width: calc(100vw - 32px); text-align: center; display: flex; align-items: center; gap: 8px;
+}
+.toast svg { width: 18px; height: 18px; color: var(--deep); }
+.toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.banner { background: var(--honey-soft); color: var(--ink); border-radius: 14px; padding: 10px 14px; font-size: 14px; margin-bottom: 12px; }
+.busy { position: fixed; inset: 0; z-index: 99; display: grid; place-items: center; background: rgba(0,0,0,.18); }
+.busy div { background: var(--glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border-radius: 18px; padding: 20px 26px; display: grid; gap: 12px; justify-items: center; font-weight: 600; font-size: 15px; color: var(--ink); }
+.spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--hair); border-top-color: var(--deep); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.haptic { position: fixed; left: -200px; top: 0; opacity: 0; pointer-events: none; }
+
+/* photo slots: front, left side, right side */
+.slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.slot { position: relative; aspect-ratio: 3 / 4; border-radius: 16px; overflow: hidden; background: var(--surface); display: grid; place-content: center; justify-items: center; gap: 4px; color: var(--deep); font-size: 14px; font-weight: 600; text-align: center; transition: transform .12s; }
+.slot:active { transform: scale(.96); }
+.slot.empty { border: 1.5px dashed var(--sage); background: transparent; }
+.slot.empty svg { width: 36px; height: 36px; color: var(--sage); }
+.slot.empty small { font-weight: 500; color: var(--muted); font-size: 12.5px; }
+.slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.slot .tag { position: absolute; left: 6px; bottom: 6px; background: var(--glass); color: var(--ink); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.slot-tip { color: var(--muted); font-size: 14px; margin: 10px 2px 0; }
+.today-slots { gap: 7px; }
+.today-slots .slot { border-radius: 12px; }
+.today-slots .slot.empty { background: var(--surface); }
+.today-slots .slot.empty svg { width: 28px; height: 28px; }
+.today-slots .slot .tag { font-size: 11px; left: 5px; bottom: 5px; padding: 1px 7px; }
+
+/* streak */
+.streak { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: .5px solid var(--hair); }
+.streak .num { font-family: var(--display); font-variation-settings: "SOFT" 100; font-size: 54px; line-height: .85; font-weight: 400; color: var(--honey); font-variant-numeric: lining-nums tabular-nums; min-width: 34px; text-align: center; }
+.streak .txt { flex: 1; min-width: 0; }
+.streak .txt strong { display: block; font-size: 17px; font-weight: 600; line-height: 1.2; }
+.streak .txt span { display: block; color: var(--muted); font-size: 13.5px; line-height: 1.3; margin-top: 2px; }
+.week { display: grid; grid-template-columns: repeat(7, 13px); gap: 5px 4px; text-align: center; flex-shrink: 0; }
+.week b { font-size: 10px; font-weight: 600; color: var(--muted); line-height: 1; }
+.week i { width: 13px; height: 13px; border-radius: 50%; background: var(--surface); display: block; }
+.week i.on { background: var(--honey); }
+.week i.today:not(.on) { background: transparent; box-shadow: inset 0 0 0 1.5px var(--honey); }
+.streak-pill { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px 0 8px; border-radius: 999px; background: var(--honey-soft); color: var(--honey); font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-right: 2px; }
+.streak-pill svg { width: 16px; height: 16px; }
+.streak-pill:active { opacity: .6; }
+
+/* photos tab */
+.seg.filter { margin: -4px 0 20px; }
+.seg.filter button[aria-checked="true"] { color: var(--deep); }
+.day-row { margin-bottom: 20px; }
+.day-row h2 { font-size: 16px; font-weight: 600; margin: 0 0 8px 2px; display: flex; gap: 8px; align-items: baseline; }
+.day-row h2 small { color: var(--muted); font-weight: 400; font-size: 14px; }
+.slots .ph { border-radius: 14px; }
+.ph.missing { border: 1.5px dashed var(--hair); background: transparent; display: grid; place-content: center; justify-items: center; gap: 2px; color: var(--muted); font-size: 12.5px; }
+.ph.missing svg { width: 26px; height: 26px; opacity: .7; }
+.vfoot .mid { display: flex; gap: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="scroller" id="scroller">
+    <header class="navbar" id="navbar">
+      <div class="navbar-inner">
+        <span class="nav-left"><span class="wordmark" id="wordmark">Skin Diary</span><button class="today-pill" id="thisMonthBtn" data-act="this-month" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 18l-6-6 6-6"/></svg>Today</button></span>
+        <span class="nav-title" id="navTitle"></span>
+        <span class="nav-right"><button class="streak-pill" id="streakPill" data-act="streak-info" hidden></button><button class="icon-btn" data-act="open-settings" aria-label="Settings and backup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"/><circle cx="7.6" cy="12" r=".9" fill="currentColor"/><circle cx="12" cy="12" r=".9" fill="currentColor"/><circle cx="16.4" cy="12" r=".9" fill="currentColor"/></svg></button></span>
+      </div>
+    </header>
+
+    <div class="app" id="app">
+      <div class="banner" id="storageBanner" hidden>This browser isn't letting the app save. Entries will disappear when you close it.</div>
+
+      <!-- CALENDAR -->
+      <main id="view-calendar" data-view="calendar">
+        <div id="installTip"></div>
+        <div class="month-head">
+          <div class="month-title" id="calTitle"><span class="year" id="monthYear">2026</span><h1 id="monthName">October</h1></div>
+          <div class="month-nav">
+            <button class="icon-btn" data-act="prev-month" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 18l-6-6 6-6"/></svg></button>
+            <button class="icon-btn" data-act="next-month" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18l6-6-6-6"/></svg></button>
+          </div>
+        </div>
+        <div class="weekdays" aria-hidden="true"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+        <div class="grid" id="grid"></div>
+        <div class="legend" id="legend"></div>
+        <section class="today-panel" id="todayPanel" aria-label="Today"></section>
+      </main>
+
+      <!-- PHOTOS -->
+      <main id="view-photos" data-view="photos" hidden>
+        <div class="large-title" id="photosTitle"><h1>Photos</h1><button class="link bold" data-act="compare-toggle" id="compareBtn">Compare</button></div>
+        <div class="seg filter" id="photoFilter" role="radiogroup" aria-label="Show photos"></div>
+        <p class="compare-hint" id="compareHint" hidden>Pick two photos to compare. The same angle works best.</p>
+        <div id="photoList"></div>
+      </main>
+
+      <!-- PRODUCTS -->
+      <main id="view-products" data-view="products" hidden>
+        <div class="large-title" id="productsTitle"><h1>Products</h1></div>
+        <form class="add-form" id="addProductForm" autocomplete="off">
+          <input class="field" id="newProduct" name="newProduct" aria-label="Product name" placeholder="Add a product you use" maxlength="60" enterkeyhint="done" autocapitalize="sentences">
+          <button class="btn btn-primary" type="submit">Add</button>
+        </form>
+        <div id="productList"></div>
+      </main>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <nav role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" data-act="tab" data-tab="calendar" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect class="fill" x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="8.5" cy="14.5" r=".6" fill="currentColor"/><circle cx="12" cy="14.5" r=".6" fill="currentColor"/><circle cx="15.5" cy="14.5" r=".6" fill="currentColor"/></svg>Calendar</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="photos" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect class="fill" x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="9" cy="9" r="1.7"/><path d="M20.5 15.5l-4.5-4.5-9.5 9.5"/></svg>Photos</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="products" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.8h5v3.4h-5z"/><path class="fill" d="M8 6.2h8a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z"/><path d="M9.5 12.5h5"/></svg>Products</button>
+    </nav>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop" data-act="backdrop"></div>
+
+<!-- DAY SHEET -->
+<section class="sheet" id="daySheet" role="dialog" aria-modal="true" aria-labelledby="dayTitle" data-close="close-day" hidden>
+  <div class="grabber"></div>
+  <div class="sheet-bar">
+    <div class="left">
+      <button class="icon-btn" data-act="prev-day" aria-label="Previous day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 18l-6-6 6-6"/></svg></button>
+      <button class="icon-btn" data-act="next-day" aria-label="Next day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18l6-6-6-6"/></svg></button>
+    </div>
+    <span></span>
+    <button class="link bold right" data-act="close-day">Done</button>
+  </div>
+  <div class="sheet-body" id="daySheetBody">
+    <div class="sheet-inner">
+      <div class="day-head" id="dayHead"><h2 class="day-title" id="dayTitle"></h2><p class="day-sub" id="daySub"></p></div>
+      <div><div class="block-head"><h3>Photos</h3><small id="photoCount"></small></div><div id="dayPhotos"></div></div>
+      <div><div class="block-head"><h3>What I used</h3></div><div id="dayUses"></div></div>
+      <div>
+        <div class="block-head"><h3><label for="dayNotes">Notes</label></h3><small class="saved" id="savedNote"></small></div>
+        <textarea class="notes" id="dayNotes" placeholder="How does your skin feel? Redness, tightness, breakouts, anything new?"></textarea>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCT SHEET -->
+<section class="sheet stacked" id="productSheet" role="dialog" aria-modal="true" aria-labelledby="productSheetTitle" data-close="close-product" hidden>
+  <div class="grabber"></div>
+  <div class="sheet-bar"><span></span><span class="title" id="productSheetTitle"></span><button class="link bold right" data-act="close-product">Done</button></div>
+  <div class="sheet-body"><div class="sheet-inner" id="productBody"></div></div>
+</section>
+
+<!-- SETTINGS SHEET -->
+<section class="sheet stacked" id="settingsSheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" data-close="close-settings" hidden>
+  <div class="grabber"></div>
+  <div class="sheet-bar"><span></span><span class="title" id="settingsTitle">Settings</span><button class="link bold right" data-act="close-settings">Done</button></div>
+  <div class="sheet-body"><div class="sheet-inner" id="settingsBody"></div></div>
+</section>
+
+<!-- COMPARE SHEET -->
+<section class="sheet stacked" id="compareSheet" role="dialog" aria-modal="true" aria-labelledby="compareTitle" data-close="close-compare" hidden>
+  <div class="grabber"></div>
+  <div class="sheet-bar"><span></span><span class="title" id="compareTitle">Compare</span><button class="link bold right" data-act="close-compare">Done</button></div>
+  <div class="sheet-body"><div class="sheet-inner" id="compareBody"></div></div>
+</section>
+
+<!-- PHOTO VIEWER -->
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-labelledby="viewerTitle" hidden>
+  <div class="vbar"><button class="link bold" data-act="close-viewer">Close</button><span class="viewer-title" id="viewerTitle"></span><span class="right"></span></div>
+  <div class="viewer-img" id="viewerStage"><img id="viewerImg" alt=""></div>
+  <div class="vfoot">
+    <button class="icon-btn" data-act="delete-photo" aria-label="Delete photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 1.8h7a2 2 0 0 0 2-1.8l1-12M9 7V4.5h6V7"/></svg></button>
+    <label for="cameraInput" class="link bold" id="viewerRetake">Retake</label>
+    <button class="link bold" data-act="viewer-open-day" id="viewerOpenDay">Open day</button>
+  </div>
+</div>
+
+<!-- TIMER -->
+<div class="timer" id="timer" role="dialog" aria-modal="true" aria-labelledby="timerName" hidden>
+  <div class="tbar"><button class="link" data-act="close-timer">Cancel</button></div>
+  <div class="timer-body">
+    <p class="timer-name" id="timerName"></p>
+    <div class="ring">
+      <svg viewBox="0 0 220 220"><circle class="track" cx="110" cy="110" r="100" fill="none" stroke-width="9"/><circle class="prog" id="timerProg" cx="110" cy="110" r="100" fill="none" stroke-width="9" stroke-linecap="round"/></svg>
+      <div class="center"><span class="big" id="timerBig">0:30</span><span class="small" id="timerSmall">Goal 30 sec</span></div>
+    </div>
+    <p class="timer-msg" id="timerMsg" aria-live="polite"></p>
+    <div class="timer-actions">
+      <button class="round quiet" data-act="timer-reset">Reset</button>
+      <button class="round go" data-act="timer-toggle" id="timerToggle">Start</button>
+    </div>
+    <button class="btn btn-primary btn-block" data-act="timer-log" id="timerLog" hidden>Log time</button>
+  </div>
+</div>
+
+<input type="file" id="cameraInput" accept="image/*" capture="user" hidden>
+<input type="file" id="libraryInput" accept="image/*" multiple hidden>
+<input type="file" id="restoreInput" accept=".json,application/json" hidden>
+<label class="haptic" id="hapticLabel" aria-hidden="true"><input type="checkbox" switch tabindex="-1"></label>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* ================= helpers ================= */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fromKey = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate() + n); return keyOf(d); };
+const diffDays = (a, b) => { const A = fromKey(a), B = fromKey(b); return Math.round((Date.UTC(B.getFullYear(), B.getMonth(), B.getDate()) - Date.UTC(A.getFullYear(), A.getMonth(), A.getDate())) / 864e5); };
+const todayKey = () => keyOf(new Date());
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const fmt = (k, o) => fromKey(k).toLocaleDateString(undefined, o);
+const fmtLong = k => fmt(k, { weekday: 'long', day: 'numeric', month: 'long' });
+const fmtShort = k => fmt(k, { weekday: 'short', day: 'numeric', month: 'short' });
+const fmtDM = k => fmt(k, { day: 'numeric', month: 'short' });
+const ord = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
+const everyLabel = n => n === 1 ? 'Every day' : `Every ${ord(n)} day`;
+const secLabel = s => { s = Math.round(s); if (s < 60) return `${s} sec`; const m = Math.floor(s / 60), r = s % 60; return r ? `${m} min ${r} sec` : `${m} min`; };
+const secShort = s => s < 60 ? `${s}s` : (s % 60 ? `${Math.floor(s / 60)}m${s % 60}s` : `${s / 60}m`);
+const clock = s => { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${pad(s % 60)}`; };
+const relDay = k => { const d = diffDays(todayKey(), k); if (d === 0) return 'today'; if (d === 1) return 'tomorrow'; if (d === -1) return 'yesterday'; if (d > 1 && d < 7) return fmt(k, { weekday: 'long' }); return fmtShort(k); };
+const COLORS = ['--p1', '--p2', '--p3', '--p4', '--p5', '--p6'];
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const STANDALONE = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const EMBEDDED = (() => { try { return window.top !== window; } catch (e) { return true; } })();
+const ICON = {
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>',
+  library: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="9" cy="9" r="1.7"/><path d="M20.5 15.5l-4.5-4.5-9.5 9.5"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+  timer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M9.5 2.5h5"/></svg>',
+  tick: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  arrows: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg>',
+  share: '<svg class="share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4.5 3 5 8 0 15-5-7-4.5-12 0-15z"/><path d="M12 7v13"/></svg>',
+};
+
+const FACE = {
+  front: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="9.6" rx="4.6" ry="5.8"/><path d="M4.8 21c.9-3.3 3.6-5 7.2-5s6.3 1.7 7.2 5"/></svg>',
+  left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16.6 6.2C15 4 12 3.4 9.7 4.5 7.8 5.4 7 7.3 7.1 9.1l-1.5 2.3 1.5.5v1.9c0 1 .9 1.7 1.9 1.5l1.3-.2V20M16.6 6.2c1.3 1.9 1.3 4.6.1 6.6-.6 1-1 2-1 3.4V20"/></svg>',
+  right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g transform="matrix(-1 0 0 1 24 0)"><path d="M16.6 6.2C15 4 12 3.4 9.7 4.5 7.8 5.4 7 7.3 7.1 9.1l-1.5 2.3 1.5.5v1.9c0 1 .9 1.7 1.9 1.5l1.3-.2V20M16.6 6.2c1.3 1.9 1.3 4.6.1 6.6-.6 1-1 2-1 3.4V20"/></g></svg>',
+  sprout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-9"/><path d="M12 12c0-4 2.5-6.5 7-6.5 0 4.5-2.8 6.5-7 6.5zM12 14c0-3.4-2.2-5.5-6-5.5 0 3.8 2.4 5.5 6 5.5z" fill="currentColor"/></svg>',
+};
+const ANGLES = [{ key: 'front', label: 'Front' }, { key: 'left', label: 'Left side' }, { key: 'right', label: 'Right side' }];
+const ANGLE_KEYS = ANGLES.map(a => a.key);
+const angleLabel = a => (ANGLES.find(x => x.key === a) || { label: 'Photo' }).label;
+
+/* iPhone haptic tap (iOS 18+ via the native switch control); vibration elsewhere. */
+function haptic(times = 1) {
+  const lab = $('#hapticLabel');
+  for (let i = 0; i < times; i++) setTimeout(() => { try { lab.click(); } catch (e) {} }, i * 130);
+  try { if (navigator.vibrate) navigator.vibrate(times > 1 ? [12, 90, 12] : 10); } catch (e) {}
+}
+
+/* ================= storage ================= */
+const KEYPATH = { days: 'date', meta: 'key', photos: 'id', thumbs: 'id', products: 'id' };
+const store = {
+  db: null, mem: null,
+  async open() {
+    try {
+      if (!('indexedDB' in window)) throw new Error('no idb');
+      this.db = await new Promise((res, rej) => {
+        const r = indexedDB.open('skin-diary', 1);
+        r.onupgradeneeded = () => { const db = r.result; for (const [n, kp] of Object.entries(KEYPATH)) if (!db.objectStoreNames.contains(n)) db.createObjectStore(n, { keyPath: kp }); };
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error('blocked'));
+        setTimeout(() => rej(new Error('timeout')), 5000);
+      });
+    } catch (e) {
+      this.db = null; this.mem = {}; for (const n in KEYPATH) this.mem[n] = new Map();
+      $('#storageBanner').hidden = false;
+    }
+  },
+  req(name, mode, fn) {
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(name, mode); const r = fn(t.objectStore(name));
+      t.oncomplete = () => res(r ? r.result : undefined); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+    });
+  },
+  all(n) { return this.db ? this.req(n, 'readonly', s => s.getAll()) : Promise.resolve([...this.mem[n].values()]); },
+  get(n, k) { return this.db ? this.req(n, 'readonly', s => s.get(k)) : Promise.resolve(this.mem[n].get(k)); },
+  put(n, v) { if (this.db) return this.req(n, 'readwrite', s => { s.put(v); }); this.mem[n].set(v[KEYPATH[n]], v); return Promise.resolve(); },
+  del(n, k) { if (this.db) return this.req(n, 'readwrite', s => { s.delete(k); }); this.mem[n].delete(k); return Promise.resolve(); },
+};
+
+/* ================= state ================= */
+const S = {
+  products: [], days: new Map(), thumbs: new Map(), // date -> [{id,date,createdAt,url}]
+  view: 'calendar', month: null, openDay: null, openProduct: null, scroll: {},
+  compareMode: false, picks: [], viewerPhoto: null, photoTarget: null, meta: {}, photoFilter: 'days',
+};
+
+function dayOf(k) { return S.days.get(k) || { date: k, notes: '', used: {} }; }
+async function saveDay(day) {
+  day.updatedAt = Date.now();
+  const empty = !day.notes && !Object.keys(day.used || {}).length;
+  if (empty) { S.days.delete(day.date); await store.del('days', day.date); }
+  else { S.days.set(day.date, day); await store.put('days', day); }
+}
+async function setMeta(key, value) { S.meta[key] = value; await store.put('meta', { key, value }); }
+function photosOn(k) { return S.thumbs.get(k) || []; }
+function sortedProducts() { return [...S.products].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)); }
+function productById(id) { return S.products.find(p => p.id === id); }
+async function saveProduct(p) { await store.put('products', p); }
+function usesOf(pid) { const out = []; for (const [k, d] of S.days) if (d.used && d.used[pid]) out.push(k); return out.sort(); }
+
+function trackStatus(p, k) {
+  const uses = usesOf(p.id);
+  if (uses.includes(k)) return { state: 'used' };
+  const prev = uses.filter(u => u < k).pop();
+  if (!prev) return { state: 'free' };
+  const due = addDays(prev, p.every);
+  return k < due ? { state: 'rest', due, prev } : { state: 'due', due, prev };
+}
+function scheduled(p, from, to) {
+  const tk = todayKey();
+  const uses = usesOf(p.id).filter(u => u <= tk);
+  const out = new Set();
+  if (!uses.length) return out;
+  let next = addDays(uses[uses.length - 1], p.every);
+  if (next < tk) next = tk;
+  let guard = 0;
+  while (next <= to && guard++ < 400) {
+    if (next >= from && !(dayOf(next).used || {})[p.id]) out.add(next);
+    next = addDays(next, p.every);
+  }
+  return out;
+}
+function slotPhoto(k, angle) { return photosOn(k).find(p => p.angle === angle); }
+function coverOf(k) { const l = photosOn(k); return slotPhoto(k, 'front') || l[0]; }
+function missingAngles(k) { return ANGLE_KEYS.filter(a => !slotPhoto(k, a)); }
+/* streak: consecutive days with at least one photo. Today doesn't break it until the day is over. */
+function streakInfo() {
+  const tk = todayKey();
+  const has = k => photosOn(k).length > 0;
+  let k = has(tk) ? tk : addDays(tk, -1), cur = 0;
+  while (has(k) && cur < 3660) { cur++; k = addDays(k, -1); }
+  const days = [...S.thumbs.keys()].filter(has).sort();
+  let best = 0, run = 0, prev = null;
+  for (const d of days) { run = prev && diffDays(prev, d) === 1 ? run + 1 : 1; best = Math.max(best, run); prev = d; }
+  return { cur, best: Math.max(best, cur), todayDone: has(tk) };
+}
+function renderStreakPill() {
+  const { cur } = streakInfo(); const pill = $('#streakPill');
+  pill.hidden = cur < 1;
+  pill.innerHTML = `${FACE.sprout}${cur}`;
+  pill.setAttribute('aria-label', `${cur}-day photo streak`);
+}
+
+/* ================= images ================= */
+async function loadBitmap(file) {
+  if (window.createImageBitmap) { try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { try { return await createImageBitmap(file); } catch (e2) {} } }
+  return await new Promise((res, rej) => { const url = URL.createObjectURL(file); const im = new Image(); im.onload = () => { res(im); URL.revokeObjectURL(url); }; im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('That photo couldn\'t be read. Try a different one.')); }; im.src = url; });
+}
+function resize(src, max, q) {
+  const w = src.width, h = src.height, s = Math.min(1, max / Math.max(w, h));
+  const c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s);
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('That photo couldn\'t be saved. Try again.')), 'image/jpeg', q));
+}
+/* Fill a day's slots. A chosen angle goes first (replacing what's there); extra files fill the empty slots in order. */
+async function addPhotos(k, files, angle) {
+  if (!files || !files.length) return;
+  const free = missingAngles(k);
+  const order = angle ? [angle, ...free.filter(a => a !== angle)] : free;
+  if (!order.length) { toast('All 3 photos are in for this day. Open one to retake it.', false); return; }
+  const use = files.slice(0, order.length);
+  const busy = showBusy(use.length > 1 ? `Saving ${use.length} photos` : 'Saving photo');
+  let added = 0, lastAngle = null;
+  try {
+    for (let i = 0; i < use.length; i++) {
+      const a = order[i];
+      try {
+        const bmp = await loadBitmap(use[i]);
+        const full = await resize(bmp, 1600, .85);
+        const thumb = await resize(bmp, 420, .78);
+        if (bmp.close) bmp.close();
+        const old = slotPhoto(k, a); if (old) await removePhoto(old.id, k);
+        const id = uid(), createdAt = Date.now();
+        await store.put('photos', { id, date: k, angle: a, blob: full, createdAt });
+        await store.put('thumbs', { id, date: k, angle: a, blob: thumb, createdAt });
+        const list = S.thumbs.get(k) || []; list.push({ id, date: k, angle: a, createdAt, url: URL.createObjectURL(thumb) }); S.thumbs.set(k, list);
+        added++; lastAngle = a;
+      } catch (e) { toast(e.message || 'That photo couldn\'t be added. Try a different one.', false); }
+    }
+  } finally { busy.remove(); }
+  if (added) {
+    const left = missingAngles(k).length;
+    haptic(); askPersist();
+    toast(added > 1 ? `${added} photos added` : `${angleLabel(lastAngle)} added${left ? `, ${left} to go` : ''}`);
+    if (files.length > order.length) setTimeout(() => toast(`Only ${order.length} fitted. Each day has 3 photo slots.`, false), 2300);
+  }
+  renderAll(); if (S.openDay === k) renderDayPhotos();
+}
+async function removePhoto(id, k) {
+  await store.del('photos', id); await store.del('thumbs', id);
+  const list = photosOn(k).filter(p => { if (p.id === id) { URL.revokeObjectURL(p.url); return false; } return true; });
+  if (list.length) S.thumbs.set(k, list); else S.thumbs.delete(k);
+}
+async function deletePhoto(id, k) {
+  await removePhoto(id, k);
+  toast('Photo deleted'); renderAll(); if (S.openDay === k) renderDayPhotos();
+}
+/* iOS action sheet for an empty slot: real <label>s, so the camera and library open reliably */
+function photoSheet(k, angle) {
+  S.photoTarget = { day: k, angle };
+  const w = document.createElement('div'); w.className = 'as-wrap';
+  w.innerHTML = `<div class="as" role="dialog" aria-modal="true" aria-labelledby="psT"><div class="as-group"><div class="as-head"><strong id="psT">${esc(angleLabel(angle))} photo</strong><span>${esc(fmtLong(k))}</span></div><label for="cameraInput" class="as-btn" style="display:grid;place-items:center" data-photo-day="${k}" data-angle="${angle}">Take Photo</label><label for="libraryInput" class="as-btn" style="display:grid;place-items:center;border-top:.5px solid var(--hair)" data-photo-day="${k}" data-angle="${angle}">Choose from Library</label></div><button class="as-btn cancel">Cancel</button></div>`;
+  const close = () => { w.classList.remove('show'); setTimeout(() => w.remove(), reduceMotion() ? 0 : 320); };
+  w.addEventListener('click', e => { if (e.target.closest('label')) { setTimeout(close, 50); return; } if (e.target === w || e.target.closest('.cancel')) close(); });
+  document.body.appendChild(w); requestAnimationFrame(() => requestAnimationFrame(() => w.classList.add('show')));
+}
+function slotsHTML(k, small) {
+  return `<div class="slots ${small ? 'today-slots' : ''}">${ANGLES.map(({ key, label }) => {
+    const p = slotPhoto(k, key);
+    if (p) return `<button class="slot" data-act="view-photo" data-id="${p.id}" data-day="${k}" aria-label="${esc(label)} photo"><img src="${p.url}" alt=""><span class="tag">${small ? esc(label.split(' ')[0]) : esc(label)}</span></button>`;
+    return `<button class="slot empty" data-act="slot-menu" data-day="${k}" data-angle="${key}" aria-label="Add ${esc(label)} photo">${FACE[key]}${small ? `<small>${esc(label.split(' ')[0])}</small>` : `${esc(label)}<small>Add</small>`}</button>`;
+  }).join('')}</div>`;
+}
+async function fullURL(id) { const rec = await store.get('photos', id); return rec ? URL.createObjectURL(rec.blob) : null; }
+async function askPersist() { try { if (navigator.storage && navigator.storage.persist && !(await navigator.storage.persisted())) await navigator.storage.persist(); } catch (e) {} }
+
+/* ================= UI bits ================= */
+let toastTimer;
+function toast(msg, ok = true) { const t = $('#toast'); t.innerHTML = (ok ? ICON.tick : '') + `<span>${esc(msg)}</span>`; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2100); }
+function showBusy(msg) { const d = document.createElement('div'); d.className = 'busy'; d.innerHTML = `<div><span class="spin"></span>${esc(msg)}</div>`; document.body.appendChild(d); return d; }
+/* iOS action sheet in place of confirm() */
+function actionSheet({ title, body, ok = 'Delete', danger = true }) {
+  return new Promise(res => {
+    const w = document.createElement('div'); w.className = 'as-wrap';
+    w.innerHTML = `<div class="as" role="alertdialog" aria-modal="true" aria-labelledby="asT"><div class="as-group"><div class="as-head"><strong id="asT">${esc(title)}</strong>${body ? `<span>${esc(body)}</span>` : ''}</div><button class="as-btn ${danger ? 'danger' : ''}" data-r="1">${esc(ok)}</button></div><button class="as-btn cancel" data-r="0">Cancel</button></div>`;
+    const close = v => { w.classList.remove('show'); setTimeout(() => w.remove(), reduceMotion() ? 0 : 320); res(v); };
+    w.addEventListener('click', e => { e.stopPropagation(); const b = e.target.closest('[data-r]'); if (b) close(b.dataset.r === '1'); else if (e.target === w) close(false); });
+    document.body.appendChild(w); requestAnimationFrame(() => requestAnimationFrame(() => w.classList.add('show')));
+    w.querySelector('[data-r="0"]').focus({ preventScroll: true });
+  });
+}
+
+/* ---------- card sheets ---------- */
+const PAGE_SHEETS = ['#daySheet', '#productSheet', '#settingsSheet', '#compareSheet'];
+function syncSheetState() {
+  const any = PAGE_SHEETS.some(s => !$(s).hidden && $(s).classList.contains('open'));
+  document.body.classList.toggle('has-sheet', any);
+}
+function openSheet(el) {
+  el.hidden = false; el.style.transform = '';
+  requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.add('open'); syncSheetState(); }));
+}
+function closeSheet(el) {
+  el.classList.remove('open'); syncSheetState();
+  setTimeout(() => { if (!el.classList.contains('open')) el.hidden = true; }, reduceMotion() ? 0 : 460);
+}
+/* drag a sheet down to dismiss it, like iOS */
+function enableSheetDrag(sheet) {
+  const body = sheet.querySelector('.sheet-body');
+  let sx = 0, sy = 0, dy = 0, t0 = 0, decided = false, dragging = false;
+  sheet.addEventListener('touchstart', e => {
+    decided = false; dragging = false; dy = 0;
+    if (e.touches.length !== 1 || e.target.closest('textarea, input, .cmp')) { decided = true; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; t0 = performance.now();
+  }, { passive: true });
+  sheet.addEventListener('touchmove', e => {
+    if (decided && !dragging) return;
+    const ddx = e.touches[0].clientX - sx, ddy = e.touches[0].clientY - sy;
+    if (!decided) {
+      if (Math.abs(ddx) < 8 && Math.abs(ddy) < 8) return;
+      decided = true;
+      const atTop = !body || body.scrollTop <= 0 || !!e.target.closest('.sheet-bar, .grabber');
+      dragging = ddy > 0 && Math.abs(ddy) > Math.abs(ddx) * 1.2 && atTop;
+      if (!dragging) return;
+      sheet.style.transition = 'none';
+    }
+    dy = Math.max(0, ddy);
+    sheet.style.transform = `translateY(${dy}px)`;
+    e.preventDefault();
+  }, { passive: false });
+  const end = () => {
+    if (!dragging) return; dragging = false;
+    const v = dy / Math.max(1, performance.now() - t0);
+    sheet.style.transition = ''; sheet.style.transform = '';
+    if (dy > 130 || (v > .45 && dy > 50)) run(sheet.dataset.close);
+  };
+  sheet.addEventListener('touchend', end); sheet.addEventListener('touchcancel', end);
+}
+PAGE_SHEETS.forEach(s => enableSheetDrag($(s)));
+
+/* ================= nav bar (large title collapse) ================= */
+const TITLES = { calendar: () => fromKey(`${S.month.y}-${pad(S.month.m + 1)}-01`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }), photos: () => 'Photos', products: () => 'Products' };
+const TITLE_EL = { calendar: '#calTitle', photos: '#photosTitle', products: '#productsTitle' };
+function updateNav() {
+  const sc = $('#scroller'); const el = $(TITLE_EL[S.view]); if (!el) return;
+  const limit = el.offsetTop + el.offsetHeight - 44 - (parseFloat(getComputedStyle($('#navbar')).paddingTop) || 0);
+  $('#navbar').classList.toggle('compact', sc.scrollTop > Math.max(4, limit));
+  $('#navTitle').textContent = TITLES[S.view]();
+  // "Today" only appears on the calendar when you've moved away from this month
+  const n = new Date(); const away = S.view === 'calendar' && (S.month.y !== n.getFullYear() || S.month.m !== n.getMonth());
+  $('#thisMonthBtn').hidden = !away; $('#wordmark').hidden = away;
+}
+let navRaf = 0;
+$('#scroller').addEventListener('scroll', () => { if (!navRaf) navRaf = requestAnimationFrame(() => { navRaf = 0; updateNav(); }); }, { passive: true });
+
+/* ================= calendar ================= */
+function renderCalendar() {
+  const { y, m } = S.month; const tk = todayKey();
+  const first = new Date(y, m, 1);
+  $('#monthName').textContent = first.toLocaleDateString(undefined, { month: 'long' });
+  $('#monthYear').textContent = y;
+  const offset = (first.getDay() + 6) % 7, daysIn = new Date(y, m + 1, 0).getDate();
+  const from = keyOf(first), to = keyOf(new Date(y, m, daysIn));
+  const tracked = S.products.filter(p => p.tracked);
+  const sched = new Set(); tracked.forEach(p => scheduled(p, from, to).forEach(d => sched.add(d)));
+  const prodMap = new Map(S.products.map(p => [p.id, p]));
+  let html = '';
+  for (let i = 0; i < offset; i++) html += '<span class="cell blank" aria-hidden="true"></span>';
+  for (let d = 1; d <= daysIn; d++) {
+    const k = keyOf(new Date(y, m, d)); const day = S.days.get(k); const ph = photosOn(k);
+    const cls = ['cell']; if (k === tk) cls.push('today'); if (k > tk) cls.push('future'); if (ph.length) cls.push('has-photo');
+    let dots = '', usedTracked = false, n = 0;
+    const usedIds = day && day.used ? Object.keys(day.used).filter(id => prodMap.has(id)) : [];
+    for (const pid of usedIds) if (prodMap.get(pid).tracked) usedTracked = true;
+    if (usedTracked) dots += '<i class="used"></i>';
+    for (const pid of usedIds) { const p = prodMap.get(pid); if (p.tracked) continue; if (n++ >= 3) break; dots += `<i style="--c:var(${p.color})"></i>`; }
+    if (!usedTracked && sched.has(k)) dots = '<i class="due"></i>' + dots;
+    if (day && day.notes) dots += '<i class="note"></i>';
+    const label = [fmtLong(k), ph.length ? 'photo' : '', usedIds.length ? `${usedIds.length} product${usedIds.length > 1 ? 's' : ''}` : '', day && day.notes ? 'note' : '', sched.has(k) ? 'due' : ''].filter(Boolean).join(', ');
+    html += `<button class="${cls.join(' ')}" data-act="open-day" data-day="${k}" aria-label="${esc(label)}">${ph.length ? `<img src="${coverOf(k).url}" alt="" loading="lazy" decoding="async">` : ''}<span class="num">${d}</span><span class="dots">${dots}</span></button>`;
+  }
+  $('#grid').innerHTML = html;
+  const tName = tracked.length === 1 ? esc(tracked[0].name) : 'Reintroduced product';
+  $('#legend').innerHTML = (tracked.length ? `<span><i class="used"></i>${tName} used</span><span><i class="due"></i>Due</span>` : '') + `<span><i class="prod"></i>Products</span><span><i class="note"></i>Note</span>`;
+  renderToday(); renderInstallTip(); updateNav();
+}
+function renderToday() {
+  const tk = todayKey(); const day = dayOf(tk); const ph = photosOn(tk);
+  const usedN = Object.keys(day.used || {}).filter(id => productById(id)).length;
+  const st = streakInfo(); const missing = missingAngles(tk);
+  let plan = '';
+  for (const p of sortedProducts().filter(p => p.tracked)) {
+    const st = trackStatus(p, tk); const used = day.used[p.id];
+    let t, s, mark = '', btn = '';
+    if (st.state === 'used') { t = `${esc(p.name)} done today`; s = (used.sec ? `${secLabel(used.sec)} contact, goal ${secLabel(p.target)}.` : `Goal ${secLabel(p.target)}.`) + (p.every > 1 ? ` Next on ${fmt(addDays(tk, p.every), { weekday: 'long' })}.` : ''); }
+    else if (st.state === 'rest') { mark = 'rest'; t = `${esc(p.name)}: rest day`; s = `Next on ${relDay(st.due)}. ${everyLabel(p.every)}.`; }
+    else { t = st.state === 'free' ? `${esc(p.name)}: ready to start` : `${esc(p.name)} is due today`; s = `${everyLabel(p.every)}, aim for ${secLabel(p.target)}.`; btn = `<button class="btn btn-primary btn-small" data-act="timer" data-pid="${p.id}" data-day="${tk}">${ICON.timer}Timer</button>`; }
+    plan += `<div class="plan-line"><span class="mark ${mark}"></span><div class="txt"><strong>${t}</strong><span>${s}</span></div>${btn}</div>`;
+  }
+  const nPhotos = [...S.thumbs.values()].reduce((a, l) => a + l.length, 0);
+  const lb = S.meta.lastBackup; const since = lb ? diffDays(lb, tk) : null;
+  const backupNote = nPhotos >= 5 && (since === null || since >= 14) ? `<p class="today-foot">${since === null ? 'Your photos are only on this phone.' : `Last backup was ${since} days ago.`} <button data-act="open-settings">Back up now</button></p>` : '';
+  // last 7 days, oldest first
+  let week = '', dots = '';
+  for (let i = 6; i >= 0; i--) { const k = addDays(tk, -i); week += `<b>${esc(fmt(k, { weekday: 'narrow' }))}</b>`; dots += `<i class="${photosOn(k).length ? 'on' : ''} ${i === 0 ? 'today' : ''}"></i>`; }
+  const sTitle = st.cur ? `${st.cur}-day streak` : 'Start a streak';
+  const sSub = st.cur
+    ? (st.todayDone ? (missing.length ? `${3 - missing.length} of 3 photos in today.` : 'All 3 photos in today.') : 'Take today\'s photos to keep it going.')
+    : 'Take today\'s photos to begin.';
+  const best = st.best > st.cur ? ` Best: ${st.best} days.` : '';
+  const next = missing[0];
+  $('#todayPanel').innerHTML = `
+    <div class="streak"><span class="num">${st.cur}</span><div class="txt"><strong>${sTitle}</strong><span>${sSub}${best}</span></div><div class="week" aria-label="Photos in the last 7 days">${week}${dots}</div></div>
+    <div><h2>${esc(fmtLong(tk))}</h2><p class="sub">${ph.length ? `${ph.length} of 3 photos` : 'No photos yet'}, ${usedN ? `${usedN} product${usedN > 1 ? 's' : ''} logged` : 'nothing logged yet'}${day.notes ? ', note added' : ''}</p></div>
+    ${slotsHTML(tk, true)}
+    ${plan}
+    <div class="today-actions" ${next ? '' : 'style="grid-template-columns:1fr"'}>
+      ${next ? `<label for="cameraInput" class="btn btn-tinted" data-photo-day="${tk}" data-angle="${next}">${ICON.camera}${esc(angleLabel(next))}</label>` : ''}
+      <button class="btn btn-primary" data-act="open-day" data-day="${tk}">Log today</button>
+    </div>
+    ${backupNote}`;
+  renderStreakPill();
+}
+function renderInstallTip() {
+  const show = IS_IOS && !STANDALONE && !EMBEDDED && !S.meta.installTipClosed;
+  $('#installTip').innerHTML = show ? `<div class="install"><img src="icon-v2-180.png" alt=""><div class="txt"><strong>Add Skin Diary to your Home Screen</strong><span>Tap ${ICON.share} Share, then Add to Home Screen. Do this before you start logging so your entries live in the app.</span></div><button class="x" data-act="close-install" aria-label="Hide">${ICON.x}</button></div>` : '';
+}
+
+/* ================= photos view ================= */
+function renderPhotos() {
+  const all = [...S.thumbs.values()].flat().sort((a, b) => b.date === a.date ? b.createdAt - a.createdAt : (b.date < a.date ? -1 : 1));
+  $('#compareBtn').hidden = all.length < 2;
+  $('#compareBtn').textContent = S.compareMode ? 'Cancel' : 'Compare';
+  $('#compareHint').hidden = !S.compareMode;
+  $('#photoFilter').hidden = !all.length;
+  $('#photoFilter').innerHTML = [['days', 'Days'], ['front', 'Front'], ['left', 'Left'], ['right', 'Right']].map(([v, l]) => `<button role="radio" aria-checked="${S.photoFilter === v}" data-act="photo-filter" data-f="${v}">${l}</button>`).join('');
+  if (!all.length) {
+    const tk = todayKey();
+    $('#photoList').innerHTML = `<div class="empty"><div class="art">${ICON.library}</div><h2>Your photos collect here</h2><p>Each day has three slots: front, left side and right side. Same spot and light each time makes changes easy to see.</p><button class="btn btn-primary" data-act="slot-menu" data-day="${tk}" data-angle="front">${ICON.camera}Take today's photos</button></div>`;
+    return;
+  }
+  const tile = (p, lab) => { const pi = S.picks.indexOf(p.id); return `<button class="ph ${pi > -1 ? 'picked' : ''}" data-act="photo-tap" data-id="${p.id}" data-day="${p.date}" aria-label="${esc(angleLabel(p.angle))} photo from ${esc(fmtLong(p.date))}"><img src="${p.url}" alt="" loading="lazy" decoding="async"><span class="lab">${esc(lab)}</span>${S.compareMode ? `<span class="pick">${pi > -1 ? pi + 1 : ''}</span>` : ''}</button>`; };
+  let html = '';
+  if (S.photoFilter === 'days') {
+    const days = [...new Set(all.map(p => p.date))];
+    for (const k of days) {
+      const d = diffDays(todayKey(), k);
+      html += `<section class="day-row"><h2>${esc(fmtShort(k))}${d === 0 ? '<small>Today</small>' : d === -1 ? '<small>Yesterday</small>' : ''}</h2><div class="slots">`;
+      for (const { key, label } of ANGLES) {
+        const p = slotPhoto(k, key);
+        html += p ? tile(p, label.split(' ')[0]) : `<button class="ph missing" data-act="open-day" data-day="${k}" aria-label="No ${esc(label)} photo, open day">${FACE[key]}${esc(label.split(' ')[0])}</button>`;
+      }
+      html += '</div></section>';
+    }
+  } else {
+    const list = all.filter(p => p.angle === S.photoFilter);
+    if (!list.length) html = `<div class="empty"><div class="art">${FACE[S.photoFilter]}</div><h2>No ${esc(angleLabel(S.photoFilter).toLowerCase())} photos yet</h2><p>They'll line up here, newest first.</p></div>`;
+    const groups = new Map();
+    for (const p of list) { const g = p.date.slice(0, 7); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(p); }
+    for (const [g, ps] of groups) {
+      const title = fromKey(g + '-01').toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      html += `<section class="photo-month"><h2>${esc(title)}</h2><div class="photo-grid">${ps.map(p => tile(p, fmtDM(p.date))).join('')}</div></section>`;
+    }
+  }
+  $('#photoList').innerHTML = html;
+}
+
+/* ================= products view ================= */
+const SUGGEST = ['Gentle cleanser', 'CeraVe Daily Moisturizing Lotion', 'CeraVe Moisturizing Cream', 'Sunscreen', 'Lip balm'];
+function renderProducts() {
+  const list = sortedProducts();
+  let html = '';
+  if (list.length) {
+    html += '<div class="group" style="--inset:42px">';
+    for (const p of list) {
+      const uses = usesOf(p.id); const last = uses[uses.length - 1];
+      const meta = p.tracked ? `<span class="meta plan">${everyLabel(p.every)}, ${secLabel(p.target)} contact</span>` : `<span class="meta">${last ? `Last used ${relDay(last)}` : 'Not used yet'}</span>`;
+      html += `<button class="row" data-act="open-product" data-pid="${p.id}"><span class="swatch" style="--c:${p.tracked ? 'var(--honey)' : `var(${p.color})`}"></span><span class="txt"><span class="name">${esc(p.name)}</span>${meta}</span>${ICON.chev}</button>`;
+    }
+    html += '</div>';
+    if (!list.some(p => p.tracked)) html += `<p class="hint">Bringing a product back slowly? Tap it to set how often you use it and how long it stays on your skin.</p>`;
+  }
+  const names = new Set(list.map(p => p.name.toLowerCase()));
+  const sugg = SUGGEST.filter(s => !names.has(s.toLowerCase()));
+  if (list.length < 5 && sugg.length) html += `<div class="suggest"><p>${list.length ? 'Quick add' : 'Start with what you use now. Tap to add.'}</p><div class="chips">${sugg.map(s => `<button class="chip" data-act="quick-add" data-name="${esc(s)}">${ICON.plus}${esc(s)}</button>`).join('')}</div></div>`;
+  $('#productList').innerHTML = html;
+}
+async function addProduct(name) {
+  name = name.trim(); if (!name) return;
+  const p = { id: uid(), name, color: COLORS[S.products.length % COLORS.length], tracked: false, every: 3, target: 30, history: [], order: Date.now(), createdAt: Date.now() };
+  S.products.push(p); await saveProduct(p); haptic(); renderAll(); toast(`${name} added`);
+}
+
+/* ================= day sheet ================= */
+function openDay(k) {
+  S.openDay = k; renderDaySheet();
+  const sh = $('#daySheet'); if (!sh.classList.contains('open')) openSheet(sh);
+  $('#daySheetBody').scrollTop = 0;
+}
+function renderDaySheet() {
+  const k = S.openDay; const d = diffDays(todayKey(), k);
+  $('#dayTitle').textContent = fmtLong(k);
+  $('#daySub').textContent = (d === 0 ? 'Today' : d === -1 ? 'Yesterday' : d === 1 ? 'Tomorrow' : d < 0 ? `${-d} days ago` : `In ${d} days`) + (fromKey(k).getFullYear() !== new Date().getFullYear() ? `, ${fromKey(k).getFullYear()}` : '');
+  renderDayPhotos(); renderDayUses();
+  $('#dayNotes').value = dayOf(k).notes || ''; $('#savedNote').textContent = '';
+}
+function renderDayPhotos() {
+  const k = S.openDay; const n = photosOn(k).filter(p => ANGLE_KEYS.includes(p.angle)).length;
+  $('#photoCount').textContent = `${n} of 3`;
+  $('#dayPhotos').innerHTML = slotsHTML(k, false) + (n < 3 ? `<p class="slot-tip">${n ? 'Tap an empty slot to add that angle.' : 'Same spot, same light, no filter. Tap a slot to start, or pick all three from your library at once.'}</p>` : '');
+}
+function renderDayUses() {
+  const k = S.openDay; const day = dayOf(k); const list = sortedProducts();
+  if (!list.length) { $('#dayUses').innerHTML = `<div class="photo-empty"><div class="art">${ICON.leaf}</div><p>Add the products you use, then tick them off each day.</p><button class="btn btn-primary" data-act="go-products">Add products</button></div>`; return; }
+  $('#dayUses').innerHTML = `<div class="group">${list.map(p => {
+    const on = !!day.used[p.id];
+    let badge = '';
+    if (p.tracked) {
+      const st = trackStatus(p, k);
+      if (st.state === 'due') badge = `<span class="badge due">${k === st.due ? 'Due' : 'Due since ' + esc(fmtDM(st.due))}</span>`;
+      else if (st.state === 'rest') badge = `<span class="badge rest">Rest day</span>`;
+      else if (st.state === 'free') badge = `<span class="badge free">${esc(everyLabel(p.every))}</span>`;
+    }
+    const sec = on && day.used[p.id].sec != null ? day.used[p.id].sec : p.target;
+    const contact = p.tracked && on ? `<div class="contact"><span>Contact time <span class="goal-note">(goal ${esc(secLabel(p.target))})</span></span><div class="stepper"><button data-act="sec" data-d="-5" data-pid="${p.id}" aria-label="5 seconds less">−</button><output>${esc(secLabel(sec))}</output><button data-act="sec" data-d="5" data-pid="${p.id}" aria-label="5 seconds more">+</button></div><button class="btn" data-act="timer" data-pid="${p.id}" data-day="${k}">${ICON.timer}Timer</button></div>` : '';
+    return `<div class="use ${on ? 'on' : ''} ${p.tracked ? 'tracked' : ''}" style="--c:var(${p.color})"><button class="use-toggle" data-act="toggle-use" data-pid="${p.id}" aria-pressed="${on}"><span class="check">${ICON.check}</span><span class="use-name">${esc(p.name)}</span>${badge}</button>${contact}</div>`;
+  }).join('')}</div>`;
+}
+let notesTimer;
+$('#dayNotes').addEventListener('input', e => {
+  const k = S.openDay; const v = e.target.value;
+  clearTimeout(notesTimer); $('#savedNote').textContent = '';
+  notesTimer = setTimeout(async () => { const day = dayOf(k); day.notes = v; await saveDay(day); $('#savedNote').textContent = 'Saved'; renderCalendar(); }, 500);
+});
+async function flushNotes() {
+  if (!S.openDay) return; clearTimeout(notesTimer);
+  const day = dayOf(S.openDay); const v = $('#dayNotes').value;
+  if ((day.notes || '') !== v) { day.notes = v; await saveDay(day); }
+}
+(() => { // swipe the date to move between days
+  let sx = 0, sy = 0; const h = $('#dayHead');
+  h.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  h.addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; if (Math.abs(dx) > 60 && Math.abs(dy) < 40) run(dx < 0 ? 'next-day' : 'prev-day'); }, { passive: true });
+})();
+
+/* ================= product sheet ================= */
+function openProduct(id) { S.openProduct = id; renderProductSheet(); openSheet($('#productSheet')); $('#productSheet .sheet-body').scrollTop = 0; }
+function renderProductSheet() {
+  const p = productById(S.openProduct); if (!p) return;
+  $('#productSheetTitle').textContent = p.name;
+  const tk = todayKey(); const uses = usesOf(p.id); const last = uses[uses.length - 1];
+  let plan = '';
+  if (p.tracked) {
+    const st = trackStatus(p, tk);
+    const nextTxt = st.state === 'used' ? (p.every > 1 ? `Done today. Next on ${relDay(addDays(tk, p.every))}.` : 'Done today. Next tomorrow.') : st.state === 'rest' ? `Rest day. Next on ${relDay(st.due)}.` : st.state === 'due' ? 'Due today.' : 'Ready when you are. Tick it on the day you start.';
+    const recent = uses.filter(u => diffDays(u, tk) < 14).length;
+    plan = `<div><p class="group-label">Plan</p><div class="group">
+      <div class="plan-cell"><span class="lbl">How often</span><div class="seg" role="radiogroup" aria-label="How often">${[4, 3, 2, 1].map(n => `<button role="radio" aria-checked="${p.every === n}" data-act="set-every" data-n="${n}">${n === 1 ? 'Daily' : ord(n)}</button>`).join('')}</div></div>
+      <div class="plan-cell inline"><span class="lbl">Contact time goal</span><div class="stepper"><button data-act="target" data-d="-5" aria-label="5 seconds less">−</button><output>${esc(secLabel(p.target))}</output><button data-act="target" data-d="5" aria-label="5 seconds more">+</button></div></div>
+      <div class="plan-cell status-lines"><strong>${esc(nextTxt)}</strong><span>${last ? `Last used ${esc(relDay(last))}. ` : ''}Used ${recent} time${recent === 1 ? '' : 's'} in the last 14 days.</span></div>
+    </div><p class="group-foot">Step it up when your skin feels calm: every 3rd day, then every 2nd, then daily. Raise contact time a little at a time.</p></div>
+    ${contactChart(p, uses)}
+    ${p.history && p.history.length ? `<div><p class="group-label">Plan changes</p><div class="group history">${[...p.history].reverse().map(h => `<div class="row"><span>${esc(fmtShort(h.date))}</span><span>${esc(everyLabel(h.every))}, ${esc(secLabel(h.target))}</span></div>`).join('')}</div></div>` : ''}`;
+  }
+  $('#productBody').innerHTML = `
+    <div><p class="group-label"><label for="productName">Name</label></p><input class="field" id="productName" value="${esc(p.name)}" maxlength="60" enterkeyhint="done" autocapitalize="sentences"></div>
+    ${p.tracked ? '' : `<div><p class="group-label">Calendar colour</p><div class="group"><div class="swatches" role="radiogroup" aria-label="Calendar colour">${COLORS.map((c, i) => `<button role="radio" aria-checked="${p.color === c}" aria-label="Colour ${i + 1}" data-act="set-color" data-c="${c}" style="--c:var(${c})"></button>`).join('')}</div></div></div>`}
+    <div><div class="group"><div class="row"><span class="txt"><span class="name">Reintroduce slowly</span></span><button class="switch" role="switch" aria-checked="${!!p.tracked}" aria-label="Reintroduce slowly" data-act="toggle-tracked"></button></div></div>
+    <p class="group-foot">Plan how often you use it and how long it stays on your skin. Due days show on the calendar.</p></div>
+    ${plan}
+    <div class="group"><button class="row destructive" data-act="delete-product">Delete product</button></div>`;
+  $('#productName').addEventListener('change', async e => { const v = e.target.value.trim(); if (!v) { e.target.value = p.name; return; } p.name = v; await saveProduct(p); $('#productSheetTitle').textContent = v; renderAll(); toast('Name saved'); });
+  $('#productName').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+}
+function contactChart(p, uses) {
+  const pts = uses.map(u => ({ k: u, s: (S.days.get(u).used[p.id] || {}).sec })).filter(x => typeof x.s === 'number').slice(-14);
+  if (!pts.length) return `<div><p class="group-label">Contact time</p><div class="group"><p class="row muted-row">Log contact time on the days you use it and your ramp-up shows here.</p></div></div>`;
+  const W = 340, H = 160, L = 38, R = 10, T = 12, B = 26;
+  const max = Math.max(p.target, ...pts.map(x => x.s), 10);
+  const step = [5, 10, 15, 30, 60, 120, 300].find(s => max / s <= 4) || 300;
+  const top = Math.ceil(max / step) * step;
+  const y = v => T + (H - T - B) * (1 - v / top);
+  const slots = Math.max(pts.length, 7); const bw = (W - L - R) / slots; const barW = Math.min(18, bw * .55);
+  let g = '';
+  for (let v = 0; v <= top; v += step) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--hair)" stroke-width="1"/><text x="${L - 7}" y="${y(v) + 4}" text-anchor="end">${secShort(v)}</text>`;
+  pts.forEach((x, i) => { const cx = L + bw * i + bw / 2; const last = i === pts.length - 1; g += `<rect x="${cx - barW / 2}" y="${y(x.s)}" width="${barW}" height="${Math.max(2, y(0) - y(x.s))}" rx="4" fill="var(--honey)" fill-opacity="${last ? 1 : .55}"/>`; });
+  const ty = y(p.target);
+  g += `<line x1="${L}" x2="${W - R}" y1="${ty}" y2="${ty}" stroke="var(--deep)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+  const fx = L + bw / 2, lx = L + bw * (pts.length - 1) + bw / 2;
+  if (pts.length === 1 || lx - fx > 64) g += `<text x="${fx}" y="${H - 6}" text-anchor="middle">${esc(fmtDM(pts[0].k))}</text>`;
+  if (pts.length > 1) g += `<text x="${lx}" y="${H - 6}" text-anchor="middle">${esc(fmtDM(pts[pts.length - 1].k))}</text>`;
+  return `<div><p class="group-label">Contact time, last ${pts.length} use${pts.length > 1 ? 's' : ''}</p><div class="group chart-box"><svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Contact time per use. Dashed line is your goal of ${esc(secLabel(p.target))}.">${g}</svg></div><p class="group-foot">Dashed line is your goal.</p></div>`;
+}
+async function changePlan(p, patch) {
+  Object.assign(p, patch);
+  const tk = todayKey(); p.history = p.history || [];
+  const lastH = p.history[p.history.length - 1];
+  if (lastH && lastH.date === tk) { lastH.every = p.every; lastH.target = p.target; } else p.history.push({ date: tk, every: p.every, target: p.target });
+  await saveProduct(p); renderProductSheet(); renderAll();
+}
+
+/* ================= settings ================= */
+let pendingBackup = null;
+async function renderSettings() {
+  const nPhotos = [...S.thumbs.values()].reduce((a, l) => a + l.length, 0);
+  let usage = '', persisted = null;
+  try { if (navigator.storage && navigator.storage.estimate) { const e = await navigator.storage.estimate(); usage = `${(e.usage / 1048576).toFixed(1)} MB`; } } catch (e) {}
+  try { if (navigator.storage && navigator.storage.persisted) persisted = await navigator.storage.persisted(); } catch (e) {}
+  const lb = S.meta.lastBackup;
+  $('#settingsBody').innerHTML = `
+    <p class="set-intro">Everything you log stays on this iPhone. Nothing is uploaded, and the app works without internet.</p>
+    <div><p class="group-label">Backup</p><div class="group">
+      ${pendingBackup ? `<button class="row action center" data-act="save-backup"><strong>Save backup file (${esc(pendingBackup.size)})</strong></button>` : `<button class="row action" data-act="make-backup"><span class="txt">Create backup</span>${ICON.chev}</button>`}
+      <label for="restoreInput" class="row action"><span class="txt">Restore from backup</span>${ICON.chev}</label>
+    </div><p class="group-foot">${pendingBackup ? 'Choose Save to Files, then iCloud Drive, so it\'s safe if you lose your phone.' : `Save a backup to Files or iCloud Drive every week or two.${lb ? ` Last backup ${esc(relDay(lb))}.` : ' No backup yet.'}`} Restoring adds a backup's entries to this phone.</p></div>
+    <div><p class="group-label">On this iPhone</p><div class="group">
+      <div class="row stat-row"><span>Photos</span><span>${nPhotos}</span></div>
+      <div class="row stat-row"><span>Days with entries</span><span>${S.days.size}</span></div>
+      <div class="row stat-row"><span>Products</span><span>${S.products.length}</span></div>
+      ${usage ? `<div class="row stat-row"><span>Space used</span><span>${usage}</span></div>` : ''}
+    </div>${persisted === null ? '' : `<p class="group-foot">${persisted ? 'Storage is protected, so iPhone won\'t clear it to free up space.' : 'Open Skin Diary from your Home Screen icon so iPhone keeps your data protected.'}</p>`}</div>`;
+}
+const blobToDataURL = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+function dataURLToBlob(u) { const [h, b64] = u.split(','); const mime = (h.match(/data:([^;]+)/) || [])[1] || 'image/jpeg'; const bin = atob(b64); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type: mime }); }
+async function makeBackup() {
+  const busy = showBusy('Preparing backup');
+  try {
+    const photos = await store.all('photos'); const thumbs = new Map((await store.all('thumbs')).map(t => [t.id, t]));
+    const parts = [`{"app":"skin-diary","version":1,"exportedAt":${JSON.stringify(new Date().toISOString())},"products":${JSON.stringify(S.products)},"days":${JSON.stringify([...S.days.values()])},"photos":[`];
+    for (let i = 0; i < photos.length; i++) {
+      const p = photos[i]; const t = thumbs.get(p.id);
+      const angle = p.angle || ((photosOn(p.date).find(x => x.id === p.id) || {}).angle) || null;
+      parts.push((i ? ',' : '') + JSON.stringify({ id: p.id, date: p.date, angle, createdAt: p.createdAt, full: await blobToDataURL(p.blob), thumb: t ? await blobToDataURL(t.blob) : null }));
+    }
+    parts.push(']}');
+    const blob = new Blob(parts, { type: 'application/json' });
+    pendingBackup = { blob, name: `skin-diary-backup-${todayKey()}.json`, size: `${(blob.size / 1048576).toFixed(1)} MB` };
+  } catch (e) { toast('Backup failed. Try again.', false); }
+  finally { busy.remove(); }
+  renderSettings();
+}
+async function saveBackup() {
+  if (!pendingBackup) return;
+  const { blob, name } = pendingBackup;
+  const file = new File([blob], name, { type: 'application/json' });
+  const done = async () => { await setMeta('lastBackup', todayKey()); pendingBackup = null; renderSettings(); renderToday(); toast('Backup saved'); };
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); await done(); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 5000); await done();
+  } catch (e) { toast('The download was blocked.', false); }
+}
+async function restoreBackup(file) {
+  let data;
+  try { data = JSON.parse(await file.text()); } catch (e) { toast('That file isn\'t a Skin Diary backup.', false); return; }
+  if (!data || data.app !== 'skin-diary') { toast('That file isn\'t a Skin Diary backup.', false); return; }
+  const n = (data.photos || []).length, d = (data.days || []).length;
+  if (!(await actionSheet({ title: 'Restore this backup?', body: `It has ${n} photo${n === 1 ? '' : 's'} and ${d} day${d === 1 ? '' : 's'} of entries.`, ok: 'Restore', danger: false }))) return;
+  const busy = showBusy('Restoring');
+  try {
+    for (const p of data.products || []) await store.put('products', p);
+    for (const day of data.days || []) await store.put('days', day);
+    for (const ph of data.photos || []) {
+      const full = dataURLToBlob(ph.full);
+      let thumb = ph.thumb ? dataURLToBlob(ph.thumb) : null;
+      if (!thumb) { try { thumb = await resize(await loadBitmap(full), 420, .78); } catch (e) { thumb = full; } }
+      await store.put('photos', { id: ph.id, date: ph.date, angle: ph.angle || undefined, blob: full, createdAt: ph.createdAt });
+      await store.put('thumbs', { id: ph.id, date: ph.date, angle: ph.angle || undefined, blob: thumb, createdAt: ph.createdAt });
+    }
+    await loadAll(); renderAll(); renderSettings(); haptic(); toast('Backup restored');
+  } catch (e) { toast('Restore stopped partway. Try again.', false); }
+  finally { busy.remove(); }
+}
+
+/* ================= viewer + compare ================= */
+async function viewPhoto(id, k) {
+  S.viewerPhoto = { id, date: k };
+  const d = diffDays(todayKey(), k);
+  const t = photosOn(k).find(p => p.id === id); const im = $('#viewerImg'); im.style.transform = ''; im.src = t ? t.url : '';
+  $('#viewerTitle').innerHTML = `${esc(angleLabel(t && t.angle))}<small>${esc(fmtShort(k))}${d === 0 ? ', today' : d === -1 ? ', yesterday' : ''}</small>`;
+  const rt = $('#viewerRetake'); rt.dataset.photoDay = k; rt.dataset.angle = (t && t.angle) || 'front'; rt.hidden = !(t && ANGLE_KEYS.includes(t.angle));
+  $('#viewerOpenDay').hidden = S.openDay === k && $('#daySheet').classList.contains('open');
+  $('#viewer').hidden = false;
+  const u = await fullURL(id); if (u && S.viewerPhoto && S.viewerPhoto.id === id) { const old = im.dataset.full; im.src = u; im.dataset.full = u; if (old) URL.revokeObjectURL(old); }
+}
+function closeViewer() { const im = $('#viewerImg'); if (im.dataset.full) { URL.revokeObjectURL(im.dataset.full); delete im.dataset.full; } im.removeAttribute('src'); $('#viewer').hidden = true; S.viewerPhoto = null; }
+(() => { // drag the photo down to close
+  const st = $('#viewerStage'), im = $('#viewerImg'), v = $('#viewer'); let sy = 0, dy = 0, on = false;
+  st.addEventListener('touchstart', e => { if (e.touches.length !== 1) return; on = true; sy = e.touches[0].clientY; dy = 0; im.style.transition = 'none'; }, { passive: true });
+  st.addEventListener('touchmove', e => { if (!on) return; dy = e.touches[0].clientY - sy; im.style.transform = `translateY(${dy}px) scale(${1 - Math.min(Math.abs(dy), 300) / 1500})`; v.style.background = `rgba(0,0,0,${1 - Math.min(Math.abs(dy), 300) / 400})`; e.preventDefault(); }, { passive: false });
+  const end = () => { if (!on) return; on = false; im.style.transition = ''; v.style.background = ''; if (Math.abs(dy) > 110) closeViewer(); else im.style.transform = ''; };
+  st.addEventListener('touchend', end); st.addEventListener('touchcancel', end);
+})();
+async function openCompare() {
+  const all = [...S.thumbs.values()].flat();
+  const [a, b] = S.picks.map(id => all.find(p => p.id === id)).sort((x, y) => x.date < y.date ? -1 : x.date > y.date ? 1 : x.createdAt - y.createdAt);
+  const days = diffDays(a.date, b.date);
+  $('#compareTitle').textContent = days ? `${days} day${days === 1 ? '' : 's'} apart` : 'Same day';
+  $('#compareBody').innerHTML = `<div><div class="cmp" id="cmp" style="--x:50%"><img src="${b.url}" alt="Photo from ${esc(fmtLong(b.date))}" id="cmpB"><img class="top" src="${a.url}" alt="Photo from ${esc(fmtLong(a.date))}" id="cmpA"><span class="divider"></span><span class="knob">${ICON.arrows}</span><span class="tag l">${esc(fmtDM(a.date))}</span><span class="tag r">${esc(fmtDM(b.date))}</span></div>
+    <p class="cmp-note">Drag across the photo to compare ${esc(fmtDM(a.date))} with ${esc(fmtDM(b.date))}.</p></div>`;
+  const cmp = $('#cmp');
+  const drag = x => { const r = cmp.getBoundingClientRect(); cmp.style.setProperty('--x', Math.max(0, Math.min(100, (x - r.left) / r.width * 100)) + '%'); };
+  cmp.addEventListener('pointerdown', e => { try { cmp.setPointerCapture(e.pointerId); } catch (_) {} drag(e.clientX); });
+  cmp.addEventListener('pointermove', e => { if (e.buttons || e.pointerType === 'touch') drag(e.clientX); });
+  cmp.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  openSheet($('#compareSheet'));
+  for (const [p, el] of [[a, '#cmpA'], [b, '#cmpB']]) { const u = await fullURL(p.id); const im = $(el); if (u && im) { im.src = u; im.dataset.full = u; } }
+}
+function closeCompare() { $$('#compareBody img').forEach(im => { if (im.dataset.full) URL.revokeObjectURL(im.dataset.full); }); closeSheet($('#compareSheet')); S.compareMode = false; S.picks = []; renderPhotos(); }
+
+/* ================= timer ================= */
+const T = { pid: null, day: null, target: 30, elapsed: 0, running: false, startAt: 0, iv: null, chimed: false, audio: null, wake: null };
+const CIRC = 2 * Math.PI * 100;
+function openTimer(pid, k) {
+  const p = productById(pid); if (!p) return;
+  Object.assign(T, { pid, day: k, target: p.target || 30, elapsed: 0, running: false, chimed: false });
+  $('#timerName').textContent = p.name;
+  $('#timerProg').style.strokeDasharray = CIRC;
+  const el = $('#timer'); el.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('open')));
+  $('#timerMsg').className = 'timer-msg'; $('#timerMsg').textContent = 'Apply it, then tap Start.';
+  drawTimer();
+}
+function closeTimer() { stopTimer(); const el = $('#timer'); el.classList.remove('open'); setTimeout(() => { if (!el.classList.contains('open')) el.hidden = true; }, reduceMotion() ? 0 : 460); }
+function tick() { const now = performance.now(); T.elapsed += (now - T.startAt) / 1000; T.startAt = now; drawTimer(); }
+function drawTimer() {
+  const rem = T.target - T.elapsed;
+  $('#timerBig').textContent = rem >= 0 ? clock(Math.ceil(rem - 0.001)) : '+' + clock(-rem);
+  $('#timerSmall').textContent = `Goal ${secLabel(T.target)}`;
+  $('#timerProg').style.strokeDashoffset = CIRC * (1 - Math.min(1, T.elapsed / T.target));
+  const tg = $('#timerToggle'); tg.textContent = T.running ? 'Pause' : (T.elapsed > 0 ? 'Resume' : 'Start'); tg.classList.toggle('pause', T.running);
+  $('#timerLog').hidden = T.elapsed < 1;
+  $('#timerLog').textContent = `Log ${secLabel(Math.round(T.elapsed))}`;
+  if (rem <= 0 && !T.chimed) { T.chimed = true; chime(); $('#timerMsg').className = 'timer-msg done'; $('#timerMsg').textContent = 'Goal reached. Rinse off when you\'re ready.'; }
+}
+function chime() {
+  haptic(3);
+  try {
+    const ctx = T.audio; if (!ctx) return;
+    [659.25, 880].forEach((f, i) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = f; const t0 = ctx.currentTime + i * .22; g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(.25, t0 + .02); g.gain.exponentialRampToValueAtTime(.001, t0 + .9); o.connect(g).connect(ctx.destination); o.start(t0); o.stop(t0 + 1); });
+  } catch (e) {}
+}
+async function timerToggle() {
+  haptic();
+  if (!T.audio) { try { const AC = window.AudioContext || window.webkitAudioContext; if (AC) { T.audio = new AC(); const b = T.audio.createBuffer(1, 1, 22050); const s = T.audio.createBufferSource(); s.buffer = b; s.connect(T.audio.destination); s.start(0); } } catch (e) {} }
+  if (T.running) { tick(); T.running = false; clearInterval(T.iv); releaseWake(); }
+  else { T.running = true; T.startAt = performance.now(); T.iv = setInterval(tick, 200); if (!T.chimed) { $('#timerMsg').className = 'timer-msg'; $('#timerMsg').textContent = 'Timing. Your screen stays on.'; } try { if (navigator.wakeLock) T.wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
+  drawTimer();
+}
+function releaseWake() { try { if (T.wake) T.wake.release(); } catch (e) {} T.wake = null; }
+function stopTimer() { clearInterval(T.iv); T.running = false; releaseWake(); }
+async function logTimer() {
+  if (T.running) tick(); stopTimer();
+  const day = dayOf(T.day); day.used[T.pid] = { sec: Math.round(T.elapsed) }; await saveDay(day);
+  closeTimer(); haptic(); toast(`Logged ${secLabel(Math.round(T.elapsed))}`);
+  renderAll(); if (S.openDay === T.day && $('#daySheet').classList.contains('open')) renderDayUses();
+}
+
+/* ================= navigation ================= */
+function setTab(t) {
+  const sc = $('#scroller');
+  if (t === S.view) { sc.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' }); return; }
+  S.scroll[S.view] = sc.scrollTop;
+  S.view = t; haptic();
+  $$('main[data-view]').forEach(m => m.hidden = m.dataset.view !== t);
+  $$('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+  if (t !== 'photos' && S.compareMode) { S.compareMode = false; S.picks = []; renderPhotos(); }
+  sc.scrollTop = S.scroll[t] || 0; updateNav();
+}
+function shiftMonth(n) {
+  const d = new Date(S.month.y, S.month.m + n, 1); S.month = { y: d.getFullYear(), m: d.getMonth() };
+  const g = $('#grid');
+  if (reduceMotion()) { renderCalendar(); return; }
+  g.classList.add(n > 0 ? 'slide-l' : 'slide-r');
+  setTimeout(() => { renderCalendar(); g.style.transition = 'none'; g.classList.remove('slide-l', 'slide-r'); g.classList.add(n > 0 ? 'slide-r' : 'slide-l'); void g.offsetWidth; g.style.transition = ''; g.classList.remove('slide-l', 'slide-r'); }, 150);
+}
+function renderAll() { renderCalendar(); renderPhotos(); renderProducts(); }
+
+async function run(act, a = {}) {
+  const ds = a.dataset || {};
+  switch (act) {
+    case 'tab': setTab(ds.tab); break;
+    case 'prev-month': shiftMonth(-1); break;
+    case 'next-month': shiftMonth(1); break;
+    case 'this-month': { const n = new Date(); haptic(); $('#scroller').scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' }); shiftMonth((n.getFullYear() - S.month.y) * 12 + (n.getMonth() - S.month.m)); break; }
+    case 'open-day': openDay(ds.day); break;
+    case 'close-day': await flushNotes(); if (document.activeElement) document.activeElement.blur(); S.openDay = null; closeSheet($('#daySheet')); renderAll(); break;
+    case 'prev-day': case 'next-day': {
+      await flushNotes(); openDay(addDays(S.openDay, act === 'prev-day' ? -1 : 1));
+      const k = fromKey(S.openDay); S.month = { y: k.getFullYear(), m: k.getMonth() }; renderCalendar(); break;
+    }
+    case 'toggle-use': {
+      const k = S.openDay, pid = ds.pid; const day = dayOf(k); const p = productById(pid);
+      if (day.used[pid]) delete day.used[pid]; else day.used[pid] = p && p.tracked ? { sec: p.target } : {};
+      haptic(); await saveDay(day); renderDayUses(); renderCalendar(); renderProducts(); break;
+    }
+    case 'sec': { const k = S.openDay, pid = ds.pid; const day = dayOf(k); if (!day.used[pid]) break; const cur = day.used[pid].sec ?? productById(pid).target; day.used[pid].sec = Math.max(0, Math.min(900, cur + Number(ds.d))); haptic(); await saveDay(day); renderDayUses(); renderToday(); break; }
+    case 'timer': openTimer(ds.pid, ds.day); break;
+    case 'timer-toggle': timerToggle(); break;
+    case 'timer-reset': stopTimer(); T.elapsed = 0; T.chimed = false; $('#timerMsg').className = 'timer-msg'; $('#timerMsg').textContent = 'Apply it, then tap Start.'; drawTimer(); break;
+    case 'timer-log': logTimer(); break;
+    case 'close-timer': closeTimer(); break;
+    case 'go-products': await flushNotes(); S.openDay = null; closeSheet($('#daySheet')); setTab('products'); setTimeout(() => $('#newProduct').focus(), 480); break;
+    case 'quick-add': addProduct(ds.name); break;
+    case 'open-product': openProduct(ds.pid); break;
+    case 'close-product': { const inp = $('#productName'); const p = productById(S.openProduct); if (inp && p && inp.value.trim() && inp.value.trim() !== p.name) { p.name = inp.value.trim(); await saveProduct(p); } S.openProduct = null; closeSheet($('#productSheet')); renderAll(); break; }
+    case 'set-color': { const p = productById(S.openProduct); p.color = ds.c; haptic(); await saveProduct(p); renderProductSheet(); renderAll(); break; }
+    case 'toggle-tracked': { const p = productById(S.openProduct); haptic(); if (!p.tracked) await changePlan(p, { tracked: true }); else { p.tracked = false; await saveProduct(p); renderProductSheet(); renderAll(); } break; }
+    case 'set-every': { const p = productById(S.openProduct); haptic(); await changePlan(p, { every: Number(ds.n) }); break; }
+    case 'target': { const p = productById(S.openProduct); haptic(); await changePlan(p, { target: Math.max(5, Math.min(900, p.target + Number(ds.d))) }); break; }
+    case 'delete-product': {
+      const p = productById(S.openProduct); const n = usesOf(p.id).length;
+      if (!(await actionSheet({ title: `Delete ${p.name}?`, body: n ? `It's ticked on ${n} day${n === 1 ? '' : 's'}. Those ticks will be removed too.` : 'This can\'t be undone.', ok: 'Delete Product' }))) break;
+      for (const k of usesOf(p.id)) { const d = dayOf(k); delete d.used[p.id]; await saveDay(d); }
+      await store.del('products', p.id); S.products = S.products.filter(x => x.id !== p.id);
+      S.openProduct = null; closeSheet($('#productSheet')); renderAll(); toast('Product deleted'); break;
+    }
+    case 'photo-tap': {
+      if (!S.compareMode) { viewPhoto(ds.id, ds.day); break; }
+      const id = ds.id; const i = S.picks.indexOf(id);
+      if (i > -1) S.picks.splice(i, 1); else S.picks.push(id);
+      if (S.picks.length > 2) S.picks.shift();
+      haptic(); renderPhotos(); if (S.picks.length === 2) openCompare(); break;
+    }
+    case 'compare-toggle': S.compareMode = !S.compareMode; S.picks = []; renderPhotos(); break;
+    case 'photo-filter': S.photoFilter = ds.f; haptic(); renderPhotos(); break;
+    case 'slot-menu': photoSheet(ds.day, ds.angle); break;
+    case 'streak-info': { const s = streakInfo(); toast(`${s.cur}-day photo streak${s.best > s.cur ? `. Best is ${s.best}` : ''}`); break; }
+    case 'close-compare': closeCompare(); break;
+    case 'view-photo': viewPhoto(ds.id, ds.day); break;
+    case 'close-viewer': closeViewer(); break;
+    case 'viewer-open-day': { const k = S.viewerPhoto.date; closeViewer(); openDay(k); break; }
+    case 'delete-photo': { const v = S.viewerPhoto; if (!v) break; if (await actionSheet({ title: 'This photo will be deleted from Skin Diary.', body: 'Backups you already saved keep it.', ok: 'Delete Photo' })) { closeViewer(); await deletePhoto(v.id, v.date); } break; }
+    case 'open-settings': pendingBackup = null; await renderSettings(); openSheet($('#settingsSheet')); break;
+    case 'close-settings': closeSheet($('#settingsSheet')); break;
+    case 'make-backup': makeBackup(); break;
+    case 'save-backup': saveBackup(); break;
+    case 'close-install': await setMeta('installTipClosed', true); renderInstallTip(); break;
+    case 'backdrop': { const top = [...PAGE_SHEETS].reverse().map(s => $(s)).find(s => s.classList.contains('open')); if (top) run(top.dataset.close); break; }
+  }
+}
+document.addEventListener('click', e => {
+  const ph = e.target.closest('[data-photo-day]'); if (ph) S.photoTarget = { day: ph.dataset.photoDay, angle: ph.dataset.angle || null };
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  run(a.dataset.act, a);
+});
+for (const id of ['#cameraInput', '#libraryInput']) $(id).addEventListener('change', async e => {
+  const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
+  const t = S.photoTarget || { day: S.openDay || todayKey(), angle: null };
+  if (!$('#viewer').hidden) closeViewer();
+  await addPhotos(t.day, files, t.angle);
+});
+$('#restoreInput').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (f) await restoreBackup(f); });
+$('#addProductForm').addEventListener('submit', e => { e.preventDefault(); const i = $('#newProduct'); addProduct(i.value); i.value = ''; i.blur(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || $('.as-wrap')) return;
+  if (!$('#timer').hidden) closeTimer();
+  else if (!$('#viewer').hidden) closeViewer();
+  else run('backdrop');
+});
+(() => { // swipe months
+  let sx = 0, sy = 0; const g = $('#grid');
+  g.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  g.addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; if (Math.abs(dx) > 60 && Math.abs(dy) < 50) shiftMonth(dx < 0 ? 1 : -1); }, { passive: true });
+})();
+let lastDay = todayKey();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    if (todayKey() !== lastDay) { lastDay = todayKey(); const n = new Date(); S.month = { y: n.getFullYear(), m: n.getMonth() }; }
+    renderAll(); if (S.openDay && $('#daySheet').classList.contains('open')) renderDayUses();
+  } else flushNotes();
+});
+
+/* ================= boot ================= */
+async function loadAll() {
+  S.thumbs.forEach(l => l.forEach(p => URL.revokeObjectURL(p.url)));
+  S.thumbs = new Map(); S.days = new Map(); S.meta = {};
+  S.products = await store.all('products');
+  for (const d of await store.all('days')) S.days.set(d.date, d);
+  for (const t of await store.all('thumbs')) { const l = S.thumbs.get(t.date) || []; l.push({ id: t.id, date: t.date, angle: t.angle, createdAt: t.createdAt, url: URL.createObjectURL(t.blob) }); S.thumbs.set(t.date, l); }
+  S.thumbs.forEach(l => {
+    l.sort((a, b) => a.createdAt - b.createdAt);
+    // photos saved before slots existed: give them the first free angle
+    const taken = new Set(l.map(p => p.angle).filter(a => ANGLE_KEYS.includes(a)));
+    l.forEach(p => { if (!ANGLE_KEYS.includes(p.angle)) { p.angle = ANGLE_KEYS.find(a => !taken.has(a)) || 'extra'; taken.add(p.angle); } });
+  });
+  for (const m of await store.all('meta')) S.meta[m.key] = m.value;
+}
+(async () => {
+  const n = new Date(); S.month = { y: n.getFullYear(), m: n.getMonth() };
+  await store.open();
+  try { await loadAll(); } catch (e) { toast('Saved entries couldn\'t be loaded. Reopen the app.', false); }
+  renderAll();
+  if (STANDALONE) askPersist();
+})();
+/*SW*/
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+/*/SW*/
+</script>
+</body>
+</html>
