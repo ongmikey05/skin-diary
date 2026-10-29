@@ -1,6 +1,6 @@
 /* Skin Diary offline cache. After the first open, the whole app loads from the phone, no internet needed.
    Your diary itself (photos, notes, products) lives in the phone's app storage, never in this cache. */
-const CACHE = 'skin-diary-10e02aeab0';
+const CACHE = 'skin-diary-40707d0804';
 const FILES = [
   './',
   './index.html',

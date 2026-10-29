@@ -1,6 +1,6 @@
 # Skin Diary
 
-A private, offline-first iPhone app for tracking skin progress day by day: three photos a day, what you used, notes, and a schedule for slowly reintroducing a cleanser.
+A private, offline-first iPhone app for tracking skin progress day by day, with a built-in AI assistant that reads your diary and compares your photos over time.
 
 **Live app:** https://ongmikey05.github.io/skin-diary/ (open in Safari on iPhone, then Share → Add to Home Screen)
 
@@ -10,36 +10,29 @@ A private, offline-first iPhone app for tracking skin progress day by day: three
 
 ## Why I built it
 
-I was repairing my skin barrier and wanted to reintroduce a cleanser gradually: every 4th day, then every 3rd, every 2nd and finally daily, while slowly increasing how long it stays on my skin. I wanted a tracker that supported that kind of schedule and kept my photos only on my phone, so I built my own.
+I was repairing my skin barrier and wanted to reintroduce a cleanser gradually, while tracking how my skin responded. I wanted a tracker that supported that kind of schedule, kept my photos on my phone, and could tell me honestly whether things were improving, so I used AI to build my own.
 
 ## Features
 
-- **Calendar:** every day shows a photo thumbnail and markers for products used, cleanser due days and notes.
-- **3 photos a day:** front, left side and right side, taken with the front camera or picked from the library.
-- **Photo timeline and compare:** browse all photos by day or by angle, and compare two days side by side.
-- **Products and cleanser plan:** a daily product checklist; tracked products follow a schedule (every 4th, 3rd or 2nd day, or daily) with a contact-time goal and a built-in timer.
-- **Streak counter:** consecutive days with at least one photo.
-- **Private by design:** no accounts, no server and no analytics. Photos never leave the phone, and backup and restore uses a single file.
-- **Works offline:** installs to the Home Screen and runs with no internet connection.
+- **Calendar:** every day shows a photo thumbnail and markers for products used, due days and notes.
+- **3 photos a day:** front, left side and right side.
+- **Morning and night checklists:** each product belongs to a morning, night or as-needed routine.
+- **Reintroduction planner:** tracked products follow a schedule (every 4th, 3rd or 2nd day, or daily) with a contact-time goal and a built-in timer.
+- **Ask (AI chatbot):** chat with Claude about your progress. It reads the whole diary (products, routines, notes, plans) and uses a tool to fetch the specific photos it needs, for example day 1 against today, or before and after starting an active.
+- **Photo timeline and compare, streak counter, backup and restore.**
+- **Private by design:** no accounts or server. Data stays on the phone; only an Ask question sends the diary and the photos Claude asks for to Anthropic's API.
+- **Works offline:** everything except Ask runs with no internet.
 
 ## How it works
 
 | Area | Approach |
 | --- | --- |
-| Platform | Progressive Web App (PWA) built for iPhone: standalone display, safe-area insets, dark mode and haptics |
+| Platform | Progressive Web App built for iPhone: standalone display, safe-area insets, dark mode, haptics |
 | Front end | Plain HTML, CSS and JavaScript, with no frameworks or dependencies |
-| Storage | IndexedDB (days, products, metadata, full-size photos and thumbnails as blobs). Photos are resized on the device to 1600px, with 420px thumbnails |
-| Offline | A service worker caches every file, cache-first, with a content-hash version, so updates install automatically |
-| Backup | Exports to a single JSON file with photos embedded, saved through the iOS share sheet; restore reads it back |
-
-## Project structure
-
-```
-index.html            the whole app: markup, styles and JavaScript
-sw.js                 service worker (offline cache)
-manifest.webmanifest  install settings for the Home Screen
-icon-*.png, fraunces.woff2   app icons and font
-```
+| Storage | IndexedDB (days, products, photos and thumbnails as blobs, chats). Photos are resized on the device |
+| AI | Claude API called directly from the device with the user's own key: streamed responses, adaptive thinking, and a `get_photos` tool the model calls to request specific days and angles. Sonnet 5.5 by default, Opus 5.5 optional |
+| Offline | A service worker caches every file, with a content-hash version so updates install automatically |
+| Security | A strict Content Security Policy: only the app's own script can run, and network access is limited to the Claude API |
 
 ## Run locally
 
